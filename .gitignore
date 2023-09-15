@@ -1,0 +1,5 @@
+*.lisp~
+*.fasl
+*.fas
+.#-emacs*
+*.o
