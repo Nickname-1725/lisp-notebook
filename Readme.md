@@ -10,9 +10,36 @@
 7. 允许编辑文件夹/笔记单元的名称，允许编辑笔记单元的内容
    - 以nvim的形式编辑
      ```lisp
-     (shell (concatenate 'string "~/桌面/" (princ-to-string (sxhash '(1 1 1)))))
+     (shell (concatenate 'string "~/桌面/"
+       (format nil 
+         (concatenate 'string "~" 
+           (princ-to-string length) ",'0x")
+         id)
      ```
      以上例子仅限clisp。使用clisp是因为命令最为简单
+   - 生成不重复随机编号，从而允许重名
+     ```lisp
+     (format nil "~8,'0x" (random (ash 2 (1- (* 4 8)))))
+     ```
+     生成长度为8的16进制随机字符串编号
+
+     或者
+     ```lisp
+     (defun generate-id (length)
+     "生成指定长度的字符串编号"
+       (format nil (concatenate 'string "~" 
+                     (princ-to-string length) ",'0x") 
+         (random (ash 2 (1- (* 4 length))))))
+     (generate-id 8)
+     ```
+
+     或者
+     ```lisp
+     (defun generate-id (length)
+     "生成指定长度的数字编号"
+       (random (ash 2 (1- (* 4 length)))))
+     (generate-id 8)
+     ```
 8. 允许查看文件夹/笔记单元的名称，允许查看笔记单元的内容
    - 以目录层级的形式呈现，一次只呈现一个文件夹内的内容
    - 在列表左侧标号
