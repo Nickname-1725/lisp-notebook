@@ -52,20 +52,32 @@
 10. 以哈希值的形式存储文件夹/笔记单元的信息，从而允许重名
 
 ## 目录层级化数据管理
-### 数据结构
-1. id-表
-   ```lisp
-   (((id-1 name-1) (id-2 name-2) (id-3 name-3) (id-4 name-4))  ; books
-    ((id-5 name-5) (id-6 name-6) (id-7 name-7) (id-8 name-8))  ; chapters
-    ((id-9 name-9) (id-10 name-10) (id-11 name-11))            ; sections
-    ((id-12 name-12)                                           ; sub-sections
-    ((id-13 name-13) (id-14 name-14))                          ; subsub-sections
-    ((id-15 name-15)))                                         ; sheets
+### 数据结构及方法
+#### id-表
+1. 数据结构
+  ```lisp
+   (('containers
+     (id-1 name-1) (id-2 name-2) (id-3 name-3) (id-4 name-4)   ; books
+     (id-5 name-5) (id-6 name-6) (id-7 name-7) (id-8 name-8)   ; chapters
+     (id-9 name-9) (id-10 name-10) (id-11 name-11)             ; sections
+     (id-12 name-12)                                           ; sub-sections
+     (id-13 name-13) (id-14 name-14))                          ; subsub-sections
+    ('sheets
+     (id-15 name-15)))                                         ; sheets
    ```
-2. 目录表
+2. 方法
+   1. `generate-id ()`: 生成随机化8位序号
+   2. `make-id (class name)`: 构造一个特定名字和类型的数据
+   3. `get-name (id)`: 给定一个序号，查找其名称
+   4. `get-type (id)`: 给定一个序号, 查找其属性`(container / sheet)`
+   4. `rename (id)`: 给定一个序号，重命名
+   5. `remove (id)`: 给定一个序号，从id表中删除它
+#### 目录表
+1. 数据结构
    ```lisp
-   ((id-1 
-      (id-5) (-id-6))
+   (0 ; 0代表根id
+    (id-1 
+      (id-5) (id-6))
     (id-2
       (id-7
         (id-9) (id-10)) 
@@ -77,20 +89,27 @@
       (id-15))
     (id-4))
    ```
-
-### 函数设计
-1. `generate-id ()`: 生成随机化8位序号
-2. `make-id (class name)`: 构造一个特定名字和类型的数据
-3. `get-list (id)`: 给定一个序号，查找其在目录表中的数状结构
-4. `get-parent-list (id)`: 给定一个序号，查找目录表中其父节点
-4. `get-name (id)`: 给定一个序号，查找其名称
-5. `rename (id)`: 给定一个序号，重命名
-6. `destruct (id)`: 给定一个序号，从目录表和id表中删除它，目录表中的层级自动上移
-7. `push-into (target destine)`: 将给定target压入destine内部层级
-8. `pop-out (target)`: 将给定target弹出，置于上一层级
-9. `succ (target destine)`: 将给定target置于destine前方
-10. `pred (target destine)`: 将给定target置于destine后方
-
+2. 方法
+   1. `insert (id target)`: 给定一个序号, 将其插入到`target`的下方
+   1. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
+   3. `get-depth (id)`: 给定一个序号, 查找其位于数状图的层次;\
+      0: root\
+      1: book\
+      2: chapter\
+      3: section\
+      4: sub-section\
+      5: sub-sub-section
+   2. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
+   3. `destruct (id)`: 给定一个序号，从目录表中删除它，目录表中的层级自动上移
+   4. `push-into (target destine)`: 将给定target压入destine内部层级
+   5. `pop-out (target)`: 将给定target弹出，置于上一层级
+   6. `succ (target destine)`: 将给定target置于destine前方
+   7. `pred (target destine)`: 将给定target置于destine后方
+#### 用户表
+1. 数据结构
+   ```lisp
+   (id-7 id-8)
+   ```
 
 
 
