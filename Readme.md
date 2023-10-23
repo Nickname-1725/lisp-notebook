@@ -51,4 +51,46 @@
    - 暂时不考虑markdown的渲染问题，markdown的渲染由导出后的VS Code实现
 10. 以哈希值的形式存储文件夹/笔记单元的信息，从而允许重名
 
+## 目录层级化数据管理
+### 数据结构
+1. id-表
+   ```lisp
+   (((id-1 name-1) (id-2 name-2) (id-3 name-3) (id-4 name-4))  ; books
+    ((id-5 name-5) (id-6 name-6) (id-7 name-7) (id-8 name-8))  ; chapters
+    ((id-9 name-9) (id-10 name-10) (id-11 name-11))            ; sections
+    ((id-12 name-12)                                           ; sub-sections
+    ((id-13 name-13) (id-14 name-14))                          ; subsub-sections
+    ((id-15 name-15)))                                         ; sheets
+   ```
+2. 目录表
+   ```lisp
+   ((id-1 
+      (id-5) (-id-6))
+    (id-2
+      (id-7
+        (id-9) (id-10)) 
+      (id-8 
+        (id-11)
+          (id-12
+            (id-13) (id-14))))
+    (id-3
+      (id-15))
+    (id-4))
+   ```
+
+### 函数设计
+1. `generate-id ()`: 生成随机化8位序号
+2. `make-id (class name)`: 构造一个特定名字和类型的数据
+3. `get-list (id)`: 给定一个序号，查找其在目录表中的数状结构
+4. `get-parent-list (id)`: 给定一个序号，查找目录表中其父节点
+4. `get-name (id)`: 给定一个序号，查找其名称
+5. `rename (id)`: 给定一个序号，重命名
+6. `destruct (id)`: 给定一个序号，从目录表和id表中删除它，目录表中的层级自动上移
+7. `push-into (target destine)`: 将给定target压入destine内部层级
+8. `pop-out (target)`: 将给定target弹出，置于上一层级
+9. `succ (target destine)`: 将给定target置于destine前方
+10. `pred (target destine)`: 将给定target置于destine后方
+
+
+
 
