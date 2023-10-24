@@ -70,3 +70,31 @@
                  (remove (assoc id (shts table)) (shts table)))))))
 
 ;;;; 目录表及其方法
+(defclass contents-table ()
+  ((tree :accessor tree
+         :initform '(0)
+         :writer write-tree))
+  (:documentation
+   "contents-table, 储存id的树状层次关系; 
+   具有增加, 删除, 调整顺序, 查找功能"))
+(defparameter contents-table (make-instance 'contents-table))
+
+(defmethod insert ((table contents-table) id target)
+  "给定一个序号, 将其插入到target下方"
+  (macrolet ((sub-target (target) `(cadr ,target)))
+    (cond
+      ((eq nil (sub-target target)) (nconc target (list (list id))))
+      (t (push id (sub-target target))))))
+(defmethod get-tree ((table contents-table) id)
+  "给定一个序号, 查找其在目录表中的数状结构"
+  (let* ((root (tree table)))
+    (labels ((遍历 (id node)
+               (cond ((atom node) (if (eq id node) node nil))
+                     (t (let ((children-list (cadr node))
+                             (current (car node)))
+                         (cond
+                           ((eq id current) node)
+                           (t (mapcar #'(lambda (sub-node) (遍历 id sub-node)) children-list))))))))
+      (遍历 id root)
+      '(未完成-有bug)
+      )))

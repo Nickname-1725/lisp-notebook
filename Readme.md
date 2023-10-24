@@ -49,7 +49,7 @@
    - 允许将笔记本以文件目录/.db的形式导出
    - 允许将笔记本以markdown的形式导出
    - 暂时不考虑markdown的渲染问题，markdown的渲染由导出后的VS Code实现
-10. 以哈希值的形式存储文件夹/笔记单元的信息，从而允许重名
+10. 以 **随机不重复序** 号的形式存储文件夹/笔记单元的信息，从而允许重名
 
 ## 目录层级化数据管理
 ### 数据结构及方法
@@ -70,8 +70,8 @@
    2. `make-id (class name)`: 构造一个特定名字和类型的数据
    3. `get-name (id)`: 给定一个序号，查找其名称
    4. `get-type (id)`: 给定一个序号, 查找其属性`(container / sheet)`
-   4. `rename (id)`: 给定一个序号，重命名
-   5. `remove (id)`: 给定一个序号，从id表中删除它
+   5. `rename (id)`: 给定一个序号，重命名
+   6. `remove (id)`: 给定一个序号，从id表中删除它
 #### 目录表
 1. 数据结构
    ```lisp
@@ -91,20 +91,20 @@
    ```
 2. 方法
    1. `insert (id target)`: 给定一个序号, 将其插入到`target`的下方
-   1. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
-   3. `get-depth (id)`: 给定一个序号, 查找其位于数状图的层次;\
+   2. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
+   3. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
+   4. `get-depth (id)`: 给定一个序号, 查找其位于数状图的层次;\
       0: root\
       1: book\
       2: chapter\
       3: section\
       4: sub-section\
       5: sub-sub-section
-   2. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
-   3. `destruct (id)`: 给定一个序号，从目录表中删除它，目录表中的层级自动上移
-   4. `push-into (target destine)`: 将给定target压入destine内部层级
-   5. `pop-out (target)`: 将给定target弹出，置于上一层级
-   6. `succ (target destine)`: 将给定target置于destine前方
-   7. `pred (target destine)`: 将给定target置于destine后方
+   5. `destruct (id)`: 给定一个序号，从目录表中删除它，目录表中的层级自动上移
+   6. `push-into (target destine)`: 将给定target压入destine内部层级
+   7. `pop-out (target)`: 将给定target弹出，置于上一层级
+   8. `succ (target destine)`: 将给定target置于destine前方
+   9. `pred (target destine)`: 将给定target置于destine后方
 #### 用户表
 1. 数据结构
    ```lisp
