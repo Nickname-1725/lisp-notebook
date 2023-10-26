@@ -83,18 +83,19 @@
   "给定一个序号, 将其插入到target下方"
   (macrolet ((sub-target (target) `(cadr ,target)))
     (cond
-      ((eq nil (sub-target target)) (nconc target (list (list id))))
-      (t (push id (sub-target target))))))
+      ((eq nil (sub-target target)) (nconc target (list (list (list id)))))
+      (t (push (list id) (sub-target target))))))
 (defmethod get-tree ((table contents-table) id)
   "给定一个序号, 查找其在目录表中的数状结构"
   (let* ((root (tree table)))
-    (labels ((遍历 (id node)
-               (cond ((atom node) (if (eq id node) node nil))
-                     (t (let ((children-list (cadr node))
-                             (current (car node)))
-                         (cond
-                           ((eq id current) node)
-                           (t (mapcar #'(lambda (sub-node) (遍历 id sub-node)) children-list))))))))
-      (遍历 id root)
-      '(未完成-有bug)
-      )))
+    (labels
+        ((遍历 (id node)
+           (macrolet ((children-list (node) `(cadr ,node)))
+             (let ((current (car node)))
+               (if
+                (eq id current) node
+                (reduce (lambda (x y)
+                          (cond (x x)
+                                (t (遍历 id y))))
+                        (children-list node) :initial-value nil))))))
+      (遍历 id root))))
