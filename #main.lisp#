@@ -85,6 +85,20 @@
     (cond
       ((eq nil (sub-target target)) (nconc target (list (list (list id)))))
       (t (push (list id) (sub-target target))))))
+(defmethod get-* ((table contents-table) id pred)
+  "get-tree, get-parent, get-depth函数的通用抽象"
+  (let* ((root (tree table)))
+    (labels
+        ((遍历 (id node depth)
+           (format t "~a~%" depth)
+           (macrolet ((children-list (node) `(cadr ,node)))
+             (if (funcall pred id node) (values node depth)
+                 (reduce
+                  (lambda (x y)
+                    (cond (x x)
+                          (t (遍历 id y (1+ depth)))))
+                  (children-list node) :initial-value nil)))))
+      (遍历 id root 1))))
 (defmethod get-tree ((table contents-table) id)
   "给定一个序号, 查找其在目录表中的数状结构"
   (let* ((root (tree table)))
@@ -128,9 +142,9 @@
           (遍历 id root 1)))))
 
 ;;; 测试用例
-(insert contents-table 1  (get-tree contents-table 0))
-(insert contents-table 2  (get-tree contents-table 0))
-(insert contents-table 4  (get-tree contents-table 0))
+(insert contents-table 1 (get-tree contents-table 0))
+(insert contents-table 2 (get-tree contents-table 0))
+(insert contents-table 4 (get-tree contents-table 0))
 (insert contents-table 10 (get-tree contents-table 2))
-(insert contents-table 4  (get-tree contents-table 14))
+(insert contents-table 4 (get-tree contents-table 14))
 

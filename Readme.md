@@ -100,11 +100,11 @@
       3: section\
       4: sub-section\
       5: sub-sub-section
-   5. `destruct (id)`: 给定一个序号，从目录表中删除它，目录表中的层级自动上移
-   6. `push-into (target destine)`: 将给定target压入destine内部层级
-   7. `pop-out (target)`: 将给定target弹出，置于上一层级
-   8. `succ (target destine)`: 将给定target置于destine前方
-   9. `pred (target destine)`: 将给定target置于destine后方
+   5. `succ (target destine)`: 将给定target置于destine前方
+   6. `pred (target destine)`: 将给定target置于destine后方
+   7. `push-into (target destine)`: 将给定target压入destine内部层级
+   8. `pop-out (target)`: 将给定target弹出，置于上一层级
+   9. `destruct (id)`: 给定一个序号，从目录表中删除它，目录表中的层级自动上移
 #### 用户表
 1. 数据结构
    ```lisp
