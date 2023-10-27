@@ -90,19 +90,22 @@
     (id-4))
    ```
 2. 方法
-   1. `insert (id target)`: 给定一个序号, 将其插入到`target`的下方
-   2. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
-   3. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
-   4. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
-      0: root\
-      1: book\
-      2: chapter\
-      3: section\
-      4: sub-section\
-      5: sub-sub-section
-   5. `pose (node index destine)`: 将node下给定索引为index的元素置于索引为destine的位置; 索引从1开始
-   6. `destruct (node index)`: 给定一个序号，从目录表中删除它
-   7. `push-into (target new-parent)`: 将给定target压入new-parent内部层级
+   1. `create-node (id)`: 给定一个序号, 生成一个节点
+   2. `get-* (id pred)`: 查找函数的通用抽象
+     1. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
+     2. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
+     3. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
+        0: root\
+        1: book\
+        2: chapter\
+        3: section\
+        4: sub-section\
+        5: sub-sub-section
+   3. 树操作
+     1. `contain (node container)`: 给定一个节点`node`, 将其插入到`container`下方
+     2. `pose (node index destine)`: 将node下给定索引为index的元素置于索引为destine的位置; 索引从1开始
+     3. `remove-tree (node)`: 给定一个树状结构, 从目录表中删除它
+   4. `insert (id target)`: (通过`create-node`, `get-tree`, `contain`联合封装)给定一个序号, 将其插入到`target`的下方
 #### 用户表
 1. 数据结构
    ```lisp

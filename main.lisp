@@ -79,12 +79,12 @@
    具有增加, 删除, 调整顺序, 查找功能"))
 (defparameter contents-table (make-instance 'contents-table))
 
-(defmethod insert ((table contents-table) id target)
-  "给定一个序号, 将其插入到target下方"
-  (macrolet ((sub-target (target) `(cadr ,target)))
-    (cond
-      ((eq nil (sub-target target)) (nconc target (list (list (list id)))))
-      (t (push (list id) (sub-target target))))))
+;;; 数据结构的节点生成
+(defmethod create-node ((table contents-table) id)
+  "给定一个序号, 生成一个节点"
+  (list id))
+
+;;; 查找操作
 (defmethod get-* ((table contents-table) id pred)
   "get-tree, get-parent, get-depth的通用抽象, 主要为遍历部分"
   (let* ((root (tree table)))
@@ -110,6 +110,13 @@
   (if (zerop id) 0
       (cadr (get-* contents-table id (lambda (node id) (assoc id (cadr node)))))))
 
+;;; 树操作
+(defmethod contain ((table contents-table) node container)
+  "给定一个节点node, 将其插入到container下方"
+  (macrolet ((cont-inner () `(cadr container)))
+    (cond
+      ((eq nil (cont-inner)) (nconc container (list (list node))))
+      (t (push node (cont-inner))))))
 (defmethod pose ((table contents-table) node index destine)
   "给定索引, 将node下索引为index的元素插入到索引为destine的位置; 这里的索引从1开始"
   (macrolet ((get-lst () `(cadr node)))
@@ -126,6 +133,17 @@
              (before (filt-redundent (subseq lst 0 split-index) elem))
              (after  (filt-redundent (subseq lst split-index) elem)))
         (setf (get-lst) (append before (list elem) after))))))
+(defmethod remove-tree ((table contents-table) node)
+  "给定一个节点, 将其从contents-table中移除"
+  (let* ((node-id (car node))
+         (parent (get-parent table node-id)))
+    (macrolet ((get-siblings () `(cadr parent)))
+      (setf (get-siblings) (remove-if (lambda (x) (eq x node)) (get-siblings))))))
+
+;;; 联合封装的操作
+(defmethod insert ((table contents-table) id target-id)
+  "给定一个序号, 生成节点并将其插入到序号为target-id的节点下方"
+  (contain table (create-node table id) (get-tree table target-id)))
 
 ;;; 测试用例
 (insert contents-table 1  (get-tree contents-table 0))
@@ -134,13 +152,3 @@
 (insert contents-table 10 (get-tree contents-table 2))
 (insert contents-table 14  (get-tree contents-table 4))
 
-(defun insert-at (lst i j)
-  "pose原型"
-  (if (or (< i 1) (> j (length lst))) (error "not valid indexes"))
-  (flet ((filt-redundent (lst elem)
-           (remove-if (lambda (x) (eq x elem)) lst)))
-    (let* ((split-index (if (< i j) j (1- j)))
-           (element (nth (1- i) lst))
-           (before (filt-redundent (subseq lst 0 split-index) element))
-           (after  (filt-redundent (subseq lst split-index) element)))
-      (append before (list element) after))))
