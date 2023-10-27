@@ -93,18 +93,16 @@
    1. `insert (id target)`: 给定一个序号, 将其插入到`target`的下方
    2. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
    3. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
-   4. `get-depth (id)`: 给定一个序号, 查找其位于数状图的层次;\
+   4. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
       0: root\
       1: book\
       2: chapter\
       3: section\
       4: sub-section\
       5: sub-sub-section
-   5. `succ (target destine)`: 将给定target置于destine前方
-   6. `pred (target destine)`: 将给定target置于destine后方
-   7. `push-into (target destine)`: 将给定target压入destine内部层级
-   8. `pop-out (target)`: 将给定target弹出，置于上一层级
-   9. `destruct (id)`: 给定一个序号，从目录表中删除它，目录表中的层级自动上移
+   5. `pose (node index destine)`: 将node下给定索引为index的元素置于索引为destine的位置; 索引从1开始
+   6. `destruct (node index)`: 给定一个序号，从目录表中删除它
+   7. `push-into (target new-parent)`: 将给定target压入new-parent内部层级
 #### 用户表
 1. 数据结构
    ```lisp

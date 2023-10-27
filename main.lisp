@@ -85,52 +85,62 @@
     (cond
       ((eq nil (sub-target target)) (nconc target (list (list (list id)))))
       (t (push (list id) (sub-target target))))))
-(defmethod get-tree ((table contents-table) id)
-  "给定一个序号, 查找其在目录表中的数状结构"
+(defmethod get-* ((table contents-table) id pred)
+  "get-tree, get-parent, get-depth的通用抽象, 主要为遍历部分"
   (let* ((root (tree table)))
     (labels
-        ((遍历 (id node)
+        ((遍历 (id node depth)
            (macrolet ((children-list (node) `(cadr ,node)))
-             (if (eq id (car node)) node
+             (if (funcall pred node id) (list node depth)
                  (reduce
                   (lambda (x y)
                     (cond (x x)
-                          (t (遍历 id y))))
+                          (t (遍历 id y (1+ depth)))))
                   (children-list node) :initial-value nil)))))
-      (遍历 id root))))
+      (遍历 id root 1))))
+(defmethod get-tree ((table contents-table) id)
+  "给定一个序号, 查找其在目录表中的数状结构"
+  (car (get-* contents-table id (lambda (node id) (eq id (car node))))))
 (defmethod get-parent ((table contents-table) id)
   "给定一个序号, 查找其在目录表中的父节点"
   (if (zerop id) nil
-      (let* ((root (tree table)))
-        (labels
-            ((遍历 (id node)
-               (macrolet ((children-list (node) `(cadr ,node)))
-                 (if (assoc id (children-list node)) node
-                     (reduce
-                      (lambda (x y)
-                        (cond (x x)
-                              (t (遍历 id y))))
-                      (children-list node) :initial-value nil)))))
-          (遍历 id root)))))
+      (car (get-* contents-table id (lambda (node id) (assoc id (cadr node)))))))
 (defmethod get-depth ((table contents-table) id)
   "给定一个序号, 查找其位于目录表树状图中的层次; 其中, root深度为0"
   (if (zerop id) 0
-      (let* ((root (tree table)))
-        (labels
-            ((遍历 (id node depth)
-               (macrolet ((children-list (node) `(cadr ,node)))
-                 (if (assoc id (children-list node)) depth
-                     (reduce
-                      (lambda (x y)
-                        (cond (x x)
-                              (t (遍历 id y (1+ depth)))))
-                      (children-list node) :initial-value nil)))))
-          (遍历 id root 1)))))
+      (cadr (get-* contents-table id (lambda (node id) (assoc id (cadr node)))))))
+
+(defmethod pose ((table contents-table) node index destine)
+  "给定索引, 将node下索引为index的元素插入到索引为destine的位置; 这里的索引从1开始"
+  (macrolet ((get-lst () `(cadr node)))
+    ;; 卫语句, 判断索引越界
+    (if (or (< index 1) (> index (length (get-lst)))
+            (< destine 1) (> destine (length (get-lst))))
+        (error "Invalid indexes"))
+    ;; 根据destine与index的相对位置, 确定分割线split-index, 然后重新拼接列表
+    (flet ((filt-redundent (lst elem)
+             (remove-if (lambda (x) (eq x elem)) lst)))
+      (let* ((lst (get-lst))
+             (split-index (if (< index destine) destine (1- destine)))
+             (elem (nth (1- index) lst))
+             (before (filt-redundent (subseq lst 0 split-index) elem))
+             (after  (filt-redundent (subseq lst split-index) elem)))
+        (setf (get-lst) (append before (list elem) after))))))
 
 ;;; 测试用例
 (insert contents-table 1  (get-tree contents-table 0))
 (insert contents-table 2  (get-tree contents-table 0))
 (insert contents-table 4  (get-tree contents-table 0))
 (insert contents-table 10 (get-tree contents-table 2))
-(insert contents-table 4  (get-tree contents-table 14))
+(insert contents-table 14  (get-tree contents-table 4))
 
+(defun insert-at (lst i j)
+  "pose原型"
+  (if (or (< i 1) (> j (length lst))) (error "not valid indexes"))
+  (flet ((filt-redundent (lst elem)
+           (remove-if (lambda (x) (eq x elem)) lst)))
+    (let* ((split-index (if (< i j) j (1- j)))
+           (element (nth (1- i) lst))
+           (before (filt-redundent (subseq lst 0 split-index) element))
+           (after  (filt-redundent (subseq lst split-index) element)))
+      (append before (list element) after))))
