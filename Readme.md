@@ -3,11 +3,10 @@
 2. 使用nvim作为编辑器，可以编写Markdown笔记单元(sheet)
 3. 每个笔记单元都以类似文件的方式放置在层级化结构中
 4. 层级化结构为：chapter, section, subsection, ss-section (或可自定义)
-5. 允许移动文件夹/笔记单元
-   - `succ target destination`: 将目标项目`target`移动到指定项目`destination`后方
-   - `pred target destination`: 将目标项目`target`移动到指定项目`destination`前方
-6. 允许新建文件夹/笔记单元
-7. 允许编辑文件夹/笔记单元的名称，允许编辑笔记单元的内容
+5. 允许容器/纸张移动
+   - `(pose index destination)`: 将索引为`index`的目标项目移动到索引为`destination`的指定项目后方
+6. 允许新建容器/纸张
+7. 允许编辑容器/纸张的名称，允许编辑纸张的内容
    - 以nvim的形式编辑
      ```lisp
      (shell (concatenate 'string "~/桌面/"
@@ -40,16 +39,16 @@
        (random (ash 2 (1- (* 4 length)))))
      (generate-id 8)
      ```
-8. 允许查看文件夹/笔记单元的名称，允许查看笔记单元的内容
-   - 以目录层级的形式呈现，一次只呈现一个文件夹内的内容
+8. 允许查看容器/纸张的名称，允许查看纸张的内容
+   - 以目录层级的形式呈现，一次只呈现一个容器内的内容
    - 在列表左侧标号
    - 向用户提示命令
    - 以nvim的形式查看
 9. 允许导出
-   - 允许将笔记本以文件目录/.db的形式导出
-   - 允许将笔记本以markdown的形式导出
+   - 允许将笔记本以文件夹内: 目录(.db), 纸张(.md)的形式导出
+   - 允许将笔记本拼接并以markdown的形式导出
    - 暂时不考虑markdown的渲染问题，markdown的渲染由导出后的VS Code实现
-10. 以 **随机不重复序** 号的形式存储文件夹/笔记单元的信息，从而允许重名
+10. 以 **随机不重复序** 号的形式存储容器/纸张的信息，从而允许重名
 
 ## 目录层级化数据管理
 ### 数据结构及方法
@@ -92,19 +91,19 @@
 2. 方法
    1. `create-node (id)`: 给定一个序号, 生成一个节点
    2. `get-* (id pred)`: 查找函数的通用抽象
-     1. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
-     2. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
-     3. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
-        0: root\
-        1: book\
-        2: chapter\
-        3: section\
-        4: sub-section\
-        5: sub-sub-section
+       1. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
+       2. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
+       3. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
+          0: root\
+          1: book\
+          2: chapter\
+          3: section\
+          4: sub-section\
+          5: sub-sub-section
    3. 树操作
-     1. `contain (node container)`: 给定一个节点`node`, 将其插入到`container`下方
-     2. `pose (node index destine)`: 将node下给定索引为index的元素置于索引为destine的位置; 索引从1开始
-     3. `remove-tree (node)`: 给定一个树状结构, 从目录表中删除它
+       1. `contain (node container)`: 给定一个节点`node`, 将其插入到`container`下方
+       2. `pose (node index destine)`: 将node下给定索引为index的元素置于索引为destine的位置; 索引从1开始
+       3. `remove-tree (node)`: 给定一个树状结构, 从目录表中删除它
    4. `insert (id target)`: (通过`create-node`, `get-tree`, `contain`联合封装)给定一个序号, 将其插入到`target`的下方
 #### 用户表
 1. 数据结构
