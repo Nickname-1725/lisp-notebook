@@ -154,9 +154,9 @@
   ((disp-list :accessor get-list
               :initform '()
               :writer write-list)
-   (parent :accessor get-id
+   (parent :accessor get-parnt
            :initform 0
-           :writer write-id))
+           :writer write-parnt))
   (:documentation
    "用户表, 获取contents-table的数据, 操作contents-table和id-tabel. "))
 
@@ -165,6 +165,46 @@
 ;;; 增
 (defmethod new-datum ((table user-table) class name)
   "新建名称为`name`的数据, 类型为class(containers/sheets)"
-  (insert contents-table (make-id id-table class name) (get-id user-table)))
+  (insert contents-table (make-id id-table class name) (get-parnt table)))
 
 ;;; 查
+(defmethod get-id ((table user-table) index)
+  "根据索引从`disp-list`中获取序号"
+  (let ((disp-list (get-list table)))
+    (if (or (< index 1) (> index (length disp-list)))
+        (error "The index invalid! (shall be 1, 2, 3, ...)"))
+    (elt (get-list table) (1- index))))
+(defmethod empty-p ((table user-table) id)
+  "根据序号判断其内部是否为空"
+  (not (children-list contents-table (get-tree contents-table id))))
+(defmethod get-type-for-user ((table user-table) id)
+  "根据序号获取类型(containers/sheets)以及深度, 
+   从而判断用户使用的类型(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)"
+  (let ((depth (get-depth contents-table id))
+        (type (get-type id-table id)))
+    (if (eq type 'containers)
+        (progn
+          (cond ((eq depth 1) 'BOOK))
+          (cond ((eq depth 2) 'CHAPTR))
+          (cond ((eq depth 3) 'SECTN))
+          (cond ((eq depth 4) 'SUBSEC))
+          (cond ((eq depth 5) 'SS-SEC)))
+        'SHEET)))
+
+;;; 改
+(defmethod update-list ((table user-table))
+  "更新user-table中的`disp-list`"
+  (write-list
+   (mapcar #'car (children-list
+                  contents-table
+                  (get-tree contents-table (get-parnt table))))
+   table))
+(defmethod cd ((table user-table) index)
+  "获取索引对应的id, 将其设置为parent, 类似于进入文件夹"
+  (write-parnt (get-id table index) table)
+  (update-list table))
+(defmethod cd.. ((table user-table))
+  "从parent获取父节点序号, 设置为parent, 类似与切换到上一级"
+  (write-parnt (car (get-parent contents-table (get-parnt table)))
+               table)
+  (update-list table))

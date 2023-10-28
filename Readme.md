@@ -131,7 +131,7 @@
    2. **查**
       1. `get-id (index)`: 根据索引从`disp-list`中获取序号
       2. `empty-p (id)`: 根据序号判断是否为空, 调用`contents-table`. 
-      3. `get-class (id)`: 根据序号获取id; 从`id-table`中获取类型(containers, sheets); 从`contents-table`中获取位于树中的层次; 判断(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)
+      3. `get-class (id)`: 从`id-table`中获取类型(containers, sheets); 从`contents-table`中获取位于树中的层次; 判断(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)
    3. **改**
       1. `update-list ()`: 更新数据结构中的`disp-list`
       2. `cd (index)`:获取索引为`index`对应的`contents-table`结点, 调用`update-list`更新
