@@ -1,54 +1,60 @@
 # 目的
-1. 一个层级化笔记管理工具
-2. 使用nvim作为编辑器，可以编写Markdown笔记单元(sheet)
-3. 每个笔记单元都以类似文件的方式放置在层级化结构中
-4. 层级化结构为：chapter, section, subsection, ss-section (或可自定义)
-5. 允许容器/纸张移动
-   - `(pose index destination)`: 将索引为`index`的目标项目移动到索引为`destination`的指定项目后方
-6. 允许新建容器/纸张
-7. 允许编辑容器/纸张的名称，允许编辑纸张的内容
-   - 以nvim的形式编辑
-     ```lisp
-     (shell (concatenate 'string "~/桌面/"
-       (format nil 
-         (concatenate 'string "~" 
-           (princ-to-string length) ",'0x")
-         id)
-     ```
-     以上例子仅限clisp。使用clisp是因为命令最为简单
-   - 生成不重复随机编号，从而允许重名
-     ```lisp
-     (format nil "~8,'0x" (random (ash 2 (1- (* 4 8)))))
-     ```
-     生成长度为8的16进制随机字符串编号
+1. 使用nvim作为编辑器，可以编写Markdown笔记单元(sheet)
+2. 一个层级化笔记管理工具
+   1. 每个笔记单元都以类似文件的方式放置在层级化结构中
+   2. 层级化结构为：chapter, section, subsection, ss-section (或可自定义)
 
-     或者
-     ```lisp
-     (defun generate-id (length)
-     "生成指定长度的字符串编号"
-       (format nil (concatenate 'string "~" 
-                     (princ-to-string length) ",'0x") 
-         (random (ash 2 (1- (* 4 length))))))
-     (generate-id 8)
-     ```
-
-     或者
-     ```lisp
-     (defun generate-id (length)
-     "生成指定长度的数字编号"
-       (random (ash 2 (1- (* 4 length)))))
-     (generate-id 8)
-     ```
-8. 允许查看容器/纸张的名称，允许查看纸张的内容
-   - 以目录层级的形式呈现，一次只呈现一个容器内的内容
-   - 在列表左侧标号
-   - 向用户提示命令
-   - 以nvim的形式查看
-9. 允许导出
+## 功能详细信息
+1. [x] 以 **随机不重复序** 号的形式存储容器/纸张的信息，从而允许重名
+2. [ ] 基础操作
+   1. [ ] 允许容器/纸张移动
+      - `(pose index destination)`: 将索引为`index`的目标项目移动到索引为`destination`的指定项目后方
+   2. [ ] 允许新建容器/纸张
+   3. [ ] 允许查看容器/纸张的名称，允许查看纸张的内容
+      - 以目录层级的形式呈现，一次只呈现一个容器内的内容
+      - 在列表左侧标
+        - 序号
+        - 类型(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)
+        - 容器是否为空(EMPTY); 否则不显示
+      - 向用户提示命令
+      - 以nvim的形式查看
+   4. [ ] 允许编辑容器/纸张的名称，允许编辑纸张的内容
+      - 以nvim的形式编辑
+        ```lisp
+        (shell (concatenate 'string "~/桌面/"
+          (format nil 
+            (concatenate 'string "~" 
+              (princ-to-string length) ",'0x")
+            id)
+        ```
+        以上例子仅限clisp。使用clisp是因为命令最为简单
+      - 生成不重复随机编号，从而允许重名
+        ```lisp
+        (format nil "~8,'0x" (random (ash 2 (1- (* 4 8)))))
+        ```
+        生成长度为8的16进制随机字符串编号
+        \
+        或者
+        ```lisp
+        (defun generate-id (length)
+        "生成指定长度的字符串编号"
+          (format nil (concatenate 'string "~" 
+                        (princ-to-string length) ",'0x") 
+            (random (ash 2 (1- (* 4 length))))))
+        (generate-id 8)
+        ```
+        \
+        或者
+        ```lisp
+        (defun generate-id (length)
+        "生成指定长度的数字编号"
+          (random (ash 2 (1- (* 4 length)))))
+        (generate-id 8)
+        ```
+3. 允许导出
    - 允许将笔记本以文件夹内: 目录(.db), 纸张(.md)的形式导出
    - 允许将笔记本拼接并以markdown的形式导出
    - 暂时不考虑markdown的渲染问题，markdown的渲染由导出后的VS Code实现
-10. 以 **随机不重复序** 号的形式存储容器/纸张的信息，从而允许重名
 
 ## 目录层级化数据管理
 ### 数据结构及方法
@@ -63,6 +69,12 @@
      (id-13 name-13) (id-14 name-14))                          ; subsub-sections
     ('sheets
      (id-15 name-15)))                                         ; sheets
+   ```
+   或者
+   ```lisp
+   (defclass id-table ()
+     ((containers :initform '())
+      (sheets :initform '())))
    ```
 2. 方法
    1. `generate-id ()`: 生成随机化8位序号
@@ -108,8 +120,27 @@
 #### 用户表
 1. 数据结构
    ```lisp
-   (id-7 id-8)
+   (defclass user-table ()
+     ((disp-list :initform '(id-7 id-8)
+      (parent :initform id-2))))
    ```
-
+2. 方法
+   1. **增**
+      1. `new (class name)`: 新建名称为`name`的数据, 类型为`class`(`containers`, `sheets`); 调用`id-table`生成序号, 调用`contents-table`插入序号, 调用`update-list`更新
+   2. **查**
+      1. `get-id (index)`: 根据索引从`disp-list`中获取序号
+      2. `empty-p (id)`: 根据序号判断是否为空, 调用`contents-table`. 
+      3. `get-class (id)`: 根据序号获取id; 从`id-table`中获取类型(containers, sheets); 从`contents-table`中获取位于树中的层次; 判断(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)
+   3. **改**
+      1. `update-list ()`: 更新数据结构中的`disp-list`
+      2. `cd (index)`:获取索引为`index`对应的`contents-table`结点, 调用`update-list`更新
+      3. `cd.. ()`: 根据`parent`从`contents-table`中获取节点, 调用`update-list`更新
+      4. `pose (index destine)`: 调用`contents-table`中的`pose (index destine)`, 调用`update-list`更新
+      5. `push-into (index destine)`: 调用`contents-table`中的`contain (node container)`, 调用`update-list`更新
+      6. `pop-out (index)`: 调用`contents-table`中的`contain (node container)`, 调用`update-list`更新
+   4. **删**
+      命名上`trash`和`distruct`需要明显区分
+      1. `trash (index)`: 根据索引递归删除下方的数据, 调用`contents-table`递归删除数据, 多次调用`id-table`删除数据
+      2. `distruct (index)`: 根据索引解体当前容器, 将容器下方的数据释放上来, 调用`contents-table`更改树结构, 调用`id-table`删除容器. 
 
 

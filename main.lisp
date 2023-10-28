@@ -145,10 +145,5 @@
   "给定一个序号, 生成节点并将其插入到序号为target-id的节点下方"
   (contain table (create-node table id) (get-tree table target-id)))
 
-;;; 测试用例
-(insert contents-table 1  (get-tree contents-table 0))
-(insert contents-table 2  (get-tree contents-table 0))
-(insert contents-table 4  (get-tree contents-table 0))
-(insert contents-table 10 (get-tree contents-table 2))
-(insert contents-table 14  (get-tree contents-table 4))
+
 
