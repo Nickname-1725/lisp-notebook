@@ -15,7 +15,7 @@
 (defparameter id-table (make-instance 'id-table))
 
 (defmethod make-id ((table id-table) type name)
-  "创建一个指定类型及名称的数据; 
+  "创建一个指定类型及名称的数据;返回id 
   1. type: 'containers / 'sheets
   2. name: 一个字符串"
   (let* ((id (generate-id 8))
@@ -30,7 +30,8 @@
       ((eq type 'containers)
        (write-cont new-list table))
       ((eq type 'sheets)
-       (write-shts new-list table)))))
+       (write-shts new-list table)))
+    id))
 
 (defmethod get-node ((table id-table) id method)
   "根据id-表中的id获取结点; 优先获取containers, 然后是sheets"
@@ -85,18 +86,19 @@
   (list id))
 
 ;;; 查找操作
+(defmethod children-list ((table contents-table) node)
+  (cadr node))
 (defmethod get-* ((table contents-table) id pred)
   "get-tree, get-parent, get-depth的通用抽象, 主要为遍历部分"
   (let* ((root (tree table)))
     (labels
         ((遍历 (id node depth)
-           (macrolet ((children-list (node) `(cadr ,node)))
-             (if (funcall pred node id) (list node depth)
-                 (reduce
-                  (lambda (x y)
-                    (cond (x x)
-                          (t (遍历 id y (1+ depth)))))
-                  (children-list node) :initial-value nil)))))
+           (if (funcall pred node id) (list node depth)
+               (reduce
+                (lambda (x y)
+                  (cond (x x)
+                        (t (遍历 id y (1+ depth)))))
+                (children-list table node) :initial-value nil))))
       (遍历 id root 1))))
 (defmethod get-tree ((table contents-table) id)
   "给定一个序号, 查找其在目录表中的数状结构"
@@ -104,11 +106,13 @@
 (defmethod get-parent ((table contents-table) id)
   "给定一个序号, 查找其在目录表中的父节点"
   (if (zerop id) nil
-      (car (get-* contents-table id (lambda (node id) (assoc id (cadr node)))))))
+      (car (get-* table id (lambda (node id)
+                             (assoc id (children-list table node)))))))
 (defmethod get-depth ((table contents-table) id)
   "给定一个序号, 查找其位于目录表树状图中的层次; 其中, root深度为0"
   (if (zerop id) 0
-      (cadr (get-* contents-table id (lambda (node id) (assoc id (cadr node)))))))
+      (cadr (get-* table id (lambda (node id)
+                              (assoc id (children-list table node)))))))
 
 ;;; 树操作
 (defmethod contain ((table contents-table) node container)
@@ -145,5 +149,22 @@
   "给定一个序号, 生成节点并将其插入到序号为target-id的节点下方"
   (contain table (create-node table id) (get-tree table target-id)))
 
+;;;; user-table
+(defclass user-table ()
+  ((disp-list :accessor get-list
+              :initform '()
+              :writer write-list)
+   (parent :accessor get-id
+           :initform 0
+           :writer write-id))
+  (:documentation
+   "用户表, 获取contents-table的数据, 操作contents-table和id-tabel. "))
 
+(defparameter user-table (make-instance 'user-table))
 
+;;; 增
+(defmethod new-datum ((table user-table) class name)
+  "新建名称为`name`的数据, 类型为class(containers/sheets)"
+  (insert contents-table (make-id id-table class name) (get-id user-table)))
+
+;;; 查

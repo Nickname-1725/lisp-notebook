@@ -78,7 +78,7 @@
    ```
 2. 方法
    1. `generate-id ()`: 生成随机化8位序号
-   2. `make-id (class name)`: 构造一个特定名字和类型的数据
+   2. `make-id (class name)`: 构造一个特定名字和类型的数据; 该函数返回id
    3. `get-name (id)`: 给定一个序号，查找其名称
    4. `get-type (id)`: 给定一个序号, 查找其属性`(container / sheet)`
    5. `rename (id)`: 给定一个序号，重命名
@@ -103,9 +103,10 @@
 2. 方法
    1. `create-node (id)`: 给定一个序号, 生成一个节点
    2. `get-* (id pred)`: 查找函数的通用抽象
-       1. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
-       2. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
-       3. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
+       1. `children-list (node)`: 给定一个节点`node`, 查找其子列表, 帮助`get-*`方法
+       2. `get-tree (id)`: 给定一个序号，查找其在目录表中的数状结构
+       3. `get-parent (id)`: 给定一个序号，查找目录表中其父节点
+       4. `get-depth (id)`: 给定一个序号, 查找其位于树状图的层次;\
           0: root\
           1: book\
           2: chapter\
@@ -126,7 +127,7 @@
    ```
 2. 方法
    1. **增**
-      1. `new (class name)`: 新建名称为`name`的数据, 类型为`class`(`containers`, `sheets`); 调用`id-table`生成序号, 调用`contents-table`插入序号, 调用`update-list`更新
+      1. `new-datum (class name)`: 新建名称为`name`的数据, 类型为`class`(`containers`, `sheets`); 调用`id-table`生成序号, 调用`contents-table`插入序号, 调用`update-list`更新
    2. **查**
       1. `get-id (index)`: 根据索引从`disp-list`中获取序号
       2. `empty-p (id)`: 根据序号判断是否为空, 调用`contents-table`. 
