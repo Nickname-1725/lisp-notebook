@@ -73,7 +73,7 @@
 ;;;; 目录表及其方法
 (defclass contents-table ()
   ((tree :accessor tree
-         :initform '(0)
+         :initform '(0 nil)
          :writer write-tree))
   (:documentation
    "contents-table, 储存id的树状层次关系; 
@@ -83,7 +83,7 @@
 ;;; 数据结构的节点生成
 (defmethod create-node ((table contents-table) id)
   "给定一个序号, 生成一个节点"
-  (list id))
+  (list id nil))
 
 ;;; 查找操作
 (defmethod children-list ((table contents-table) node)
@@ -119,7 +119,7 @@
   "给定一个节点node, 将其插入到container下方"
   (macrolet ((cont-inner () `(cadr container)))
     (cond
-      ((eq nil (cont-inner)) (nconc container (list (list node))))
+      ;((eq nil (cont-inner)) (nconc container (list (list node))))
       (t (push node (cont-inner))))))
 (defmethod pose ((table contents-table) node index destine)
   "给定索引, 将node下索引为index的元素插入到索引为destine的位置; 这里的索引从1开始"
