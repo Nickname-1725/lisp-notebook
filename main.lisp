@@ -2,6 +2,21 @@
   "生成指定长度的数字编号"
   (random (ash 2 (1- (* 4 length)))))
 
+(defun save-db (data-base filename)
+  (with-open-file (out filename
+                       :direction :output
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
+    (with-standard-io-syntax
+      (print data-base out))))
+(defmacro load-db (data-base filename)
+  `(let ((file-exists (probe-file ,filename)))
+     (when file-exists
+         (with-open-file (in ,filename
+                        :if-does-not-exist :error)
+     (with-standard-io-syntax
+       (setf ,data-base (read in)))))))
+
 ;;;; id-table及其方法
 (defclass id-table ()
   ((containers :accessor cont
@@ -69,6 +84,12 @@
           ((eq type 'sheets)
            (setf (shts table)
                  (remove (assoc id (shts table)) (shts table)))))))
+(defmethod save-id ((table id-table))
+  (save-db (shts table) "./.config/sheets-id.db")
+  (save-db (cont table) "./.config/containers.db"))
+(defmethod load-id ((table id-table))
+  (load-db (shts table) "./.config/sheets-id.db")
+  (load-db (cont table) "./.config/containers.db"))
 
 ;;;; 目录表及其方法
 (defclass contents-table ()
@@ -143,6 +164,10 @@
          (parent (get-parent table node-id)))
     (macrolet ((get-siblings () `(cadr parent)))
       (setf (get-siblings) (remove-if (lambda (x) (eq x node)) (get-siblings))))))
+(defmethod save-contents ((table contents-table))
+  (save-db (tree table) "./.config/contents.db"))
+(defmethod load-contents ((table contents-table))
+  (load-db (tree table) "./.config/contents.db"))
 
 ;;; 联合封装的操作
 (defmethod insert ((table contents-table) id target-id)
@@ -275,15 +300,8 @@
   (update-list table))
 
 ;;; 测试例
-(print (new-datum user-table 'containers "书籍收藏"))
-(print (new-datum user-table 'containers "书籍1"))
-(print (cd user-table 1))
-(print (new-datum user-table 'containers "心理书籍"))
-(print (cd user-table 1))
-(print (new-datum user-table 'sheets "蛤蟆先生决定去看心理医生"))
-(print (new-datum user-table 'sheets "也许你该找个人聊聊"))
-(print (new-datum user-table 'sheets "自卑与超越"))
-(print (cd.. user-table))
-(print (distruct user-table 1))
-(tree contents-table)
+(load-id id-table)
+(load-contents contents-table)
 
+(save-id id-table)
+(save-contents contents-table)
