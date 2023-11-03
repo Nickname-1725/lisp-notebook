@@ -162,11 +162,6 @@
 
 (defparameter user-table (make-instance 'user-table))
 
-;;; 增
-(defmethod new-datum ((table user-table) class name)
-  "新建名称为`name`的数据, 类型为class(containers/sheets)"
-  (insert contents-table (make-id id-table class name) (get-parnt table)))
-
 ;;; 查
 (defmethod get-id ((table user-table) index)
   "根据索引从`disp-list`中获取序号"
@@ -208,3 +203,36 @@
   (write-parnt (car (get-parent contents-table (get-parnt table)))
                table)
   (update-list table))
+
+(defmethod pose* ((table user-table) index destine)
+  (pose contents-table
+        (get-tree contents-table (get-parnt table))
+        index destine)
+  (update-list table))
+
+(defmethod push-into ((table user-table) index destine)
+  (let ((target (get-tree contents-table (get-id user-table index))))
+    (remove-tree contents-table target)
+    (contain contents-table
+             target
+             (get-tree contents-table (get-id user-table destine)))) 
+  (update-list table))
+
+(defmethod pop-out ((table user-table) index)
+  (let ((target (get-tree contents-table (get-id user-table index))))
+    (remove-tree contents-table target)
+    (contain contents-table
+             target
+             (get-parent contents-table (get-parnt table)))) 
+  (update-list table))
+
+;;; 增
+(defmethod new-datum ((table user-table) class name)
+  "新建名称为`name`的数据, 类型为class(containers/sheets)"
+  (insert contents-table (make-id id-table class name) (get-parnt table))
+  (update-list table))
+
+;;; 删
+(defmethod trash ((table user-table) index)
+  )
+
