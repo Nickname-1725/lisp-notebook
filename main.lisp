@@ -187,7 +187,15 @@
         'SHEET)))
 (defmethod count-sheets ((table user-table) id)
   "根据id递归式获取其下方sheets类型数据的个数"
-  )
+  (let* ((target (get-tree contents-table id)))
+    (labels ((遍历 (node)
+               (cond
+                 ((eq 'sheets (get-type id-table (car node))) 1)
+                 (t (reduce
+                     (lambda (x y)
+                       (+ x (遍历 y)))
+                     (children-list contents-table node) :initial-value 0)))))
+      (遍历 target))))
 (defmethod count-items ((table user-table) id)
   "根据id获取其下方节点个数"
   (let* ((target (get-tree contents-table id))
@@ -243,7 +251,19 @@
 ;;; 删
 (defmethod trash ((table user-table) index)
   "递归式清除索引为index及其下方的所有数据"
-  )
+  (labels ((遍历 (id)
+             (cond
+               ((empty-p user-table id))
+               (t (reduce
+                   (lambda (x y)
+                     `,x
+                     (遍历 (car y)))
+                   (children-list contents-table (get-tree contents-table id))
+                   :initial-value nil)))
+             (remove-tree contents-table (get-tree contents-table id))
+             (remove-node id-table id)))
+    (遍历 (get-id user-table index)))
+  (update-list table))
 
 (defmethod distruct ((table user-table) index)
   "清除索引为index的节点, 保留其子节点, 并且子节点自动上移"
@@ -256,6 +276,7 @@
 
 ;;; 测试例
 (print (new-datum user-table 'containers "书籍收藏"))
+(print (new-datum user-table 'containers "书籍1"))
 (print (cd user-table 1))
 (print (new-datum user-table 'containers "心理书籍"))
 (print (cd user-table 1))
