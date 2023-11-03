@@ -185,6 +185,14 @@
           (cond ((eq depth 4) 'SUBSEC))
           (cond ((eq depth 5) 'SS-SEC)))
         'SHEET)))
+(defmethod count-sheets ((table user-table) id)
+  "根据id递归式获取其下方sheets类型数据的个数"
+  )
+(defmethod count-items ((table user-table) id)
+  "根据id获取其下方节点个数"
+  (let* ((target (get-tree contents-table id))
+         (children (children-list contents-table target)))
+    (length children)))
 
 ;;; 改
 (defmethod update-list ((table user-table))
@@ -234,5 +242,27 @@
 
 ;;; 删
 (defmethod trash ((table user-table) index)
+  "递归式清除索引为index及其下方的所有数据"
   )
+
+(defmethod distruct ((table user-table) index)
+  "清除索引为index的节点, 保留其子节点, 并且子节点自动上移"
+  (let* ((parent (get-tree contents-table (get-parnt user-table)))
+         (target (get-tree contents-table (get-id user-table index)))
+         (children (children-list contents-table target)))
+    (nconc (children-list contents-table parent) children)
+    (remove-tree contents-table target))
+  (update-list table))
+
+;;; 测试例
+(print (new-datum user-table 'containers "书籍收藏"))
+(print (cd user-table 1))
+(print (new-datum user-table 'containers "心理书籍"))
+(print (cd user-table 1))
+(print (new-datum user-table 'sheets "蛤蟆先生决定去看心理医生"))
+(print (new-datum user-table 'sheets "也许你该找个人聊聊"))
+(print (new-datum user-table 'sheets "自卑与超越"))
+(print (cd.. user-table))
+(print (distruct user-table 1))
+(tree contents-table)
 
