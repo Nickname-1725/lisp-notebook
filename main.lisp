@@ -1,4 +1,4 @@
-(defparameter config-path "./.config/")
+(defparameter config-path "~/.config/lisp-notebook/")
 
 (defun generate-id (length)
   "生成指定长度的数字编号"
@@ -384,6 +384,11 @@
                    (format t "This has been the *root*!~%")
                    (cd.. user-table))))
     ;; 保存/退出
+    (export #'(lambda (indx)
+                (format t "~c[2J~c[H" #\escape #\escape)
+                (format t "Sorry about that. The feature is not ready yet! That's awkward.(┭┮ ﹏ ┭┮ )~%")
+                (read-line)
+                '(do-something-here)))
     (save #'(lambda ()
               (save-id id-table)
               (save-contents contents-table)))))
