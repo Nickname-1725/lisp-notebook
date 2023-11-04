@@ -1,4 +1,6 @@
- (defun generate-id (length)
+(defparameter config-path "./.config/")
+
+(defun generate-id (length)
   "生成指定长度的数字编号"
   (random (ash 2 (1- (* 4 length)))))
 
@@ -12,7 +14,7 @@
 (defmacro load-db (data-base filename)
   `(let ((file-exists (probe-file ,filename)))
      (when file-exists
-         (with-open-file (in ,filename
+         (with-open-file (in ,(concatenate 'string config-path filename)
                         :if-does-not-exist :error)
      (with-standard-io-syntax
        (setf ,data-base (read in)))))))
@@ -85,11 +87,11 @@
            (setf (shts table)
                  (remove (assoc id (shts table)) (shts table)))))))
 (defmethod save-id ((table id-table))
-  (save-db (shts table) "./.config/sheets-id.db")
-  (save-db (cont table) "./.config/containers.db"))
+  (save-db (shts table) "sheets-id.db")
+  (save-db (cont table) "containers.db"))
 (defmethod load-id ((table id-table))
-  (load-db (shts table) "./.config/sheets-id.db")
-  (load-db (cont table) "./.config/containers.db"))
+  (load-db (shts table) "sheets-id.db")
+  (load-db (cont table) "containers.db"))
 
 ;;;; 目录表及其方法
 (defclass contents-table ()
@@ -165,9 +167,9 @@
     (macrolet ((get-siblings () `(cadr parent)))
       (setf (get-siblings) (remove-if (lambda (x) (eq x node)) (get-siblings))))))
 (defmethod save-contents ((table contents-table))
-  (save-db (tree table) "./.config/contents.db"))
+  (save-db (tree table) "contents.db"))
 (defmethod load-contents ((table contents-table))
-  (load-db (tree table) "./.config/contents.db"))
+  (load-db (tree table) "contents.db"))
 
 ;;; 联合封装的操作
 (defmethod insert ((table contents-table) id target-id)
@@ -309,17 +311,20 @@
 ;;;; 用户交互
 
 (defun user-read ()
-  "通用解析用户输入函数"
-  (let ((cmd (read-from-string
-              (concatenate 'string "(" (read-line) ")" ))))
-    (flet ((quote-it (x)
-             (list 'quote x)))
-      (cons (car cmd) (mapcar (lambda (item)
-                                (if (or (numberp item)
-                                        (stringp item))
-                                    item
-                                    (funcall #'quote-it item)))
-                              (cdr cmd))))))
+  "通用解析用户输入函数(同时判断输入的合法性)
+  去除所有越界索引, 以及除数字及字符串外的输入"
+  (let* ((cmd (read-from-string
+               (concatenate 'string "(" (read-line) ")" )))
+         (operands (mapcar (lambda (item)
+                             (cond ((numberp item)
+                                    (if (or (> item (length (get-list user-table)))
+                                            (< item 1))
+                                        nil
+                                        item))
+                                   ((stringp item) item)))
+                           (cdr cmd))))
+    (if (member nil operands) nil
+        (cons (car cmd) operands))))
 
 (defmacro user-eval* (allow-cmds &body fun-list)
   "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
@@ -339,30 +344,45 @@
 
 (defparameter user-cmd-eval
   (user-eval* '(;; 增
-                (create 2) (nvim 2)
+                (box 2) (paper 2)
                 ;; 删
                 (destruct 2) (trash 2)
                 ;; 改
-                (rename 3) (pose 3) (push-into 3) (pop-out 2)
+                (nvim 2)(rename 3) (pose 3) (push-into 3) (pop-out 2)
                 ;; 查
                 (enter 2) (upper 1)
                 ;; 保存/退出
                 (export 2) (save 1))
     ;; 增
-    (create #'(lambda (name) (new-datum user-table 'containers name)))
-    (nvim #'(lambda (name) `,name '(do-something-here)))
+    (box #'(lambda (name) (new-datum user-table 'containers name)))
+    (paper #'(lambda (name) (new-datum user-table 'sheets name)))
     ;; 删
     (destruct #'(lambda (index) (destruct user-table index)))
     (trash #'(lambda (index) (trash user-table index)))
     ;; 改
+    (nvim #'(lambda (index)
+              (let ((target-id (get-id user-table index)))
+                (if (eq 'containers (get-type id-table target-id))
+                  (format t "The operation is not allowed on containers!~%")
+                  (shell (concatenate 'string "nvim " config-path
+                                    (format nil "~8,0x" target-id)))))))
     (rename #'(lambda (index name)
                 (rename-node id-table (get-id user-table index) name)))
     (pose #'(lambda (index destine) (pose* user-table index destine)))
-    (push-into #'(lambda (index destine) (push-into user-table index destine)))
+    (push-into #'(lambda (index destine)
+                   (if (eq 'sheets (get-type id-table (get-id user-table destine)))
+                       (format t "Do not push anything into sheets!~%")
+                       (push-into user-table index destine))))
     (pop-out #'(lambda (index) (pop-out user-table index)))
     ;; 查
-    (enter #'(lambda (index) (cd* user-table index)))
-    (upper #'(lambda () (cd.. user-table)))
+    (enter #'(lambda (index)
+               (if (eq 'sheets (get-type id-table (get-id user-table index)))
+                   (format t "You can not *enter* a sheet!~%")
+                   (cd* user-table index))))
+    (upper #'(lambda ()
+               (if (eq 0 (get-parnt user-table))
+                   (format t "This has been the *root*!~%")
+                   (cd.. user-table))))
     ;; 保存/退出
     (save #'(lambda ()
               (save-id id-table)
@@ -397,12 +417,13 @@
   "反馈可用命令"
   (user-cmd-description
    '(;; 增
-     ("create \"name\"" "Create a container. Name shall be \"quote-marked\".")
-     ("nvim \"name\"" "Create a sheet or edit it. Name shall be \"quote-marked\".")
+     ("box \"name\"" "Create a container. Name shall be \"quote-marked\".")
+     ("paper \"name\"" "Create a sheet. Name shall be \"quote-marked\".")
      ;; 删
      ("destruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
      ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too.")
      ;; 改
+     ("nvim index" "Edit the sheet with Noevim(shall have been installed).")
      ("rename indx \"name\"" "Rename a container/sheet. ")
      ("pose indx destn" "Move a container/sheet to the destination.")
      ("push-into indx destn" "Push a container/sheet into the destination.")
