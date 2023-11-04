@@ -314,7 +314,12 @@
               (concatenate 'string "(" (read-line) ")" ))))
     (flet ((quote-it (x)
              (list 'quote x)))
-      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
+      (cons (car cmd) (mapcar (lambda (item)
+                                (if (or (numberp item)
+                                        (stringp item))
+                                    item
+                                    (funcall #'quote-it item)))
+                              (cdr cmd))))))
 
 (defmacro user-eval* (allow-cmds &body fun-list)
   "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
@@ -381,7 +386,7 @@
                         (count-sheets user-table x)
                         (count-items user-table x)
                         (get-name id-table x))
-                  (list 'sheet "-" "-" "-" (get-name id-table x))))
+                  (list index 'sheet "-" "-" "-" (get-name id-table x))))
             user-list
             index-list)))
     (format t "~{~{~a~3t~a~10t~a~16t(~a sheets in ~a items) ~40t\"~a\"~}~%~}"
