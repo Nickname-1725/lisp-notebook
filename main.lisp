@@ -234,7 +234,7 @@
                   contents-table
                   (get-tree contents-table (get-parnt table))))
    table))
-(defmethod cd ((table user-table) index)
+(defmethod cd* ((table user-table) index)
   "获取索引对应的id, 将其设置为parent, 类似于进入文件夹"
   (write-parnt (get-id table index) table)
   (update-list table))
@@ -361,7 +361,7 @@
     (push-into #'(lambda (index destine) (push-into user-table index destine)))
     (pop-out #'(lambda (index) (pop-out user-table index)))
     ;; 查
-    (enter #'(lambda (index) (cd user-table index)))
+    (enter #'(lambda (index) (cd* user-table index)))
     (upper #'(lambda () (cd.. user-table)))
     ;; 保存/退出
     (save #'(lambda ()
