@@ -203,12 +203,11 @@
   (let ((depth (get-depth contents-table id))
         (type (get-type id-table id)))
     (if (eq type 'containers)
-        (progn
-          (cond ((eq depth 1) 'BOOK))
-          (cond ((eq depth 2) 'CHAPTR))
-          (cond ((eq depth 3) 'SECTN))
-          (cond ((eq depth 4) 'SUBSEC))
-          (cond ((eq depth 5) 'SS-SEC)))
+        (cond ((eq depth 1) 'BOOK)
+              ((eq depth 2) 'CHAPTR)
+              ((eq depth 3) 'SECTN)
+              ((eq depth 4) 'SUBSEC)
+              ((eq depth 5) 'SS-SEC))
         'SHEET)))
 (defmethod count-sheets ((table user-table) id)
   "根据id递归式获取其下方sheets类型数据的个数"
@@ -290,7 +289,7 @@
     (遍历 (get-id user-table index)))
   (update-list table))
 
-(defmethod distruct ((table user-table) index)
+(defmethod destruct ((table user-table) index)
   "清除索引为index的节点, 保留其子节点, 并且子节点自动上移"
   (let* ((parent (get-tree contents-table (get-parnt user-table)))
          (target (get-tree contents-table (get-id user-table index)))
@@ -302,6 +301,7 @@
 ;;; 测试例
 (load-id id-table)
 (load-contents contents-table)
+(update-list user-table)
 
 (save-id id-table)
 (save-contents contents-table)
@@ -333,18 +333,59 @@
            (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
 
 (defparameter user-cmd-eval
-  (user-eval* '((push-into 1)
-                (pop-out 1)
-                (save 1)
-                (hello 1))
-    (push-into #'(lambda () (format t "OK. ")))
-    (pop-out #'(lambda () (format t "Out! ")))
-    (save #'(lambda () (format t "saved. ")))
-    (hello #'(lambda () (format t "Good day, sir. ")))))
+  (user-eval* '(;; 增
+                (create 2) (nvim 2)
+                ;; 删
+                (destruct 2) (trash 2)
+                ;; 改
+                (rename 3) (pose 2) (push-into 1) (pop-out 1)
+                ;; 查
+                (enter 2) (upper 1)
+                ;; 保存/退出
+                (export 2) (save 1))
+    ;; 增
+    (create #'(lambda (name) (new-datum user-table 'containers name)))
+    (nvim #'(lambda (name) `,name '(do-something-here)))
+    ;; 删
+    (destruct #'(lambda (index) (destruct user-table index)))
+    ;; 改
+    (rename #'(lambda (index name)
+                (rename-node id-table (get-id user-table index) name)))
+    (pose #'(lambda (index destine) (pose* user-table index destine)))
+    (push-into #'(lambda (index destine) (push-into user-table index destine)))
+    (pop-out #'(lambda (index) (pop-out user-table index)))
+    ;; 查
+    (enter #'(lambda (index) (cd user-table index)))
+    (upper #'(lambda () (cd.. user-table)))
+    ;; 保存/退出
+    (save #'(lambda ()
+              (save-id id-table)
+              (save-contents contents-table)))))
 
 (defun user-cmd-description (cmd-desc)
   "依次打印命令的描述"
   (format t "~{~{- [~a~19t]: ~a~}~%~}" cmd-desc))
+
+(defun display-list ()
+  "依次打印当前目录内的项目"
+  (let* ((user-list (get-list user-table))
+         (index-list (loop for i from 1 to (length user-list)
+                           collect i))
+         (imformation-list
+           (mapcar
+            (lambda (x index)
+              (if (eq 'containers (get-type id-table x))
+                  (list index
+                        (get-type-for-user user-table x)
+                        (if (empty-p user-table x) 'empty 'full)
+                        (count-sheets user-table x)
+                        (count-items user-table x)
+                        (get-name id-table x))
+                  (list 'sheet "-" "-" "-" (get-name id-table x))))
+            user-list
+            index-list)))
+    (format t "~{~{~a~3t~a~10t~a~16t(~a sheets in ~a items) ~40t\"~a\"~}~%~}"
+            imformation-list)))
 
 (defun print-description ()
   "反馈可用命令"
@@ -353,9 +394,10 @@
      ("create \"name\"" "Create a container. Name shall be \"quote-marked\".")
      ("nvim \"name\"" "Create a sheet or edit it. Name shall be \"quote-marked\".")
      ;; 删
-     ("distruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
+     ("destruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
      ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too.")
      ;; 改
+     ("rename indx \"name\"" "Rename a container/sheet. ")
      ("pose indx destn" "Move a container/sheet to the destination.")
      ("push-into indx destn" "Push a container/sheet into the destination.")
      ("pop-out indx" "Move a container/sheet to its upper level.")
@@ -370,7 +412,8 @@
 (defun main-repl ()
   (format t "The note-book launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (print-description)
-              ; 执行用户命令
+  (display-list)
+  ;; 执行用户命令
   (let ((cmd (user-read)))
     (if (eq (car cmd) 'quit)
         (progn
