@@ -305,3 +305,79 @@
 
 (save-id id-table)
 (save-contents contents-table)
+
+;;;; 用户交互
+
+(defun user-read ()
+  "通用解析用户输入函数"
+  (let ((cmd (read-from-string
+              (concatenate 'string "(" (read-line) ")" ))))
+    (flet ((quote-it (x)
+             (list 'quote x)))
+      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
+
+(defmacro user-eval* (allow-cmds &body fun-list)
+  "模板，生成user-eval类型的函数，输入参数为允许的命令列表及允许词数
+  allow-cmds: 应形如((command-1 3) (command-2 1))"
+  `(lambda (sexp)
+     (format t "~c[2J~c[H" #\escape #\escape)
+     (let* ((operator-name (car sexp))
+            (operands (cdr sexp))
+            (allow-cmds ,allow-cmds)
+            (find-cmd (assoc operator-name allow-cmds)))
+       (if (and find-cmd
+                (eq (length sexp) (cadr find-cmd)))
+           (let ((operator (case operator-name
+                             ,@fun-list)))
+             (apply operator operands))
+           (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
+
+(defparameter user-cmd-eval
+  (user-eval* '((push-into 1)
+                (pop-out 1)
+                (save 1)
+                (hello 1))
+    (push-into #'(lambda () (format t "OK. ")))
+    (pop-out #'(lambda () (format t "Out! ")))
+    (save #'(lambda () (format t "saved. ")))
+    (hello #'(lambda () (format t "Good day, sir. ")))))
+
+(defun user-cmd-description (cmd-desc)
+  "依次打印命令的描述"
+  (format t "~{~{- [~a~19t]: ~a~}~%~}" cmd-desc))
+
+(defun print-description ()
+  "反馈可用命令"
+  (user-cmd-description
+   '(;; 增
+     ("create \"name\"" "Create a container. Name shall be \"quote-marked\".")
+     ("nvim \"name\"" "Create a sheet or edit it. Name shall be \"quote-marked\".")
+     ;; 删
+     ("distruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
+     ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too.")
+     ;; 改
+     ("pose indx destn" "Move a container/sheet to the destination.")
+     ("push-into indx destn" "Push a container/sheet into the destination.")
+     ("pop-out indx" "Move a container/sheet to its upper level.")
+     ;; 查
+     ("enter indx" "Enter a container.")
+     ("upper" "Back to upper level.")
+     ;; 保存/退出
+     ("export indx" "Export your work in Markdown format.")
+     ("save" "Save your masterpiece with your own hands.")
+     ("quit" "Exit. Data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
+
+(defun main-repl ()
+  (format t "The note-book launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
+  (print-description)
+              ; 执行用户命令
+  (let ((cmd (user-read)))
+    (if (eq (car cmd) 'quit)
+        (progn
+          "退出笔记"
+          (save-id id-table)
+          (save-contents contents-table)
+          (format t "Exited the note-book. Goodbye."))
+        (progn
+          (funcall user-cmd-eval cmd)
+          (main-repl)))))
