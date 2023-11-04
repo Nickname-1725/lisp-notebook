@@ -5,7 +5,7 @@
   (random (ash 2 (1- (* 4 length)))))
 
 (defun save-db (data-base filename)
-  (with-open-file (out filename
+  (with-open-file (out (concatenate 'string config-path filename)
                        :direction :output
                        :if-exists :supersede
                        :if-does-not-exist :create)
@@ -45,10 +45,9 @@
       ((assoc id id-list) (make-id table type name))
       ; 将id-pair插入列表中
       ((eq type 'containers)
-       (write-cont new-list table))
+       (write-cont new-list table) id)
       ((eq type 'sheets)
-       (write-shts new-list table)))
-    id))
+       (write-shts new-list table) id))))
 
 (defmethod get-node ((table id-table) id method)
   "根据id-表中的id获取结点; 优先获取containers, 然后是sheets"
@@ -143,7 +142,7 @@
   (macrolet ((cont-inner () `(cadr container)))
     (cond
       ;((eq nil (cont-inner)) (nconc container (list (list node))))
-      (t (push node (cont-inner))))))
+      (t (setf (cont-inner) (cons node (cont-inner)))))))
 (defmethod pose ((table contents-table) node index destine)
   "给定索引, 将node下索引为index的元素插入到索引为destine的位置; 这里的索引从1开始"
   (macrolet ((get-lst () `(cadr node)))
@@ -170,11 +169,6 @@
   (save-db (tree table) "contents.db"))
 (defmethod load-contents ((table contents-table))
   (load-db (tree table) "contents.db"))
-
-;;; 联合封装的操作
-(defmethod insert ((table contents-table) id target-id)
-  "给定一个序号, 生成节点并将其插入到序号为target-id的节点下方"
-  (contain table (create-node table id) (get-tree table target-id)))
 
 ;;;; user-table
 (defclass user-table ()
@@ -271,8 +265,11 @@
 ;;; 增
 (defmethod new-datum ((table user-table) class name)
   "新建名称为`name`的数据, 类型为class(containers/sheets)"
-  (insert contents-table (make-id id-table class name) (get-parnt table))
-  (update-list table))
+  (let* ((new-id (make-id id-table class name))
+         (parent-id (get-parnt table)))
+    (contain contents-table (create-node contents-table new-id)
+             (get-tree contents-table parent-id))
+    (update-list table)))
 
 ;;; 删
 (defmethod trash ((table user-table) index)
@@ -293,20 +290,14 @@
 
 (defmethod destruct ((table user-table) index)
   "清除索引为index的节点, 保留其子节点, 并且子节点自动上移"
-  (let* ((parent (get-tree contents-table (get-parnt user-table)))
-         (target (get-tree contents-table (get-id user-table index)))
+  (let* ((target-id (get-id user-table index))
+         (parent (get-parent contents-table target-id))
+         (target (get-tree contents-table target-id))
          (children (children-list contents-table target)))
     (nconc (children-list contents-table parent) children)
-    (remove-tree contents-table target))
+    (remove-tree contents-table target)
+    (remove-node id-table target-id))
   (update-list table))
-
-;;; 测试例
-(load-id id-table)
-(load-contents contents-table)
-(update-list user-table)
-
-(save-id id-table)
-(save-contents contents-table)
 
 ;;;; 用户交互
 
@@ -415,6 +406,11 @@
                   (list index 'sheet "-" "-" "-" (get-name id-table x))))
             user-list
             index-list)))
+    (format t "======== NOW: ~a ========~%"
+            (let* ((parent-id (get-parnt user-table))
+                   (parent-name (if (eq 0 parent-id) '*ROOT*
+                                    (get-name id-table parent-id))))
+              parent-name))
     (format t "~{~{~a~3t~a~10t~a~16t(~a sheets in ~a items) ~40t\"~a\"~}~%~}"
             imformation-list)))
 
@@ -441,6 +437,11 @@
      ("save" "Save your masterpiece with your own hands.")
      ("quit" "Exit. Data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 
+(defun load-all ()
+  (load-id id-table)
+  (load-contents contents-table)
+  (update-list user-table))
+
 (defun main-repl ()
   (format t "The note-book launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
   (print-description)
@@ -456,3 +457,6 @@
         (progn
           (funcall user-cmd-eval cmd)
           (main-repl)))))
+
+(defun init-fun ()
+  (load-all) (main-repl))
