@@ -343,7 +343,7 @@
                 ;; 删
                 (destruct 2) (trash 2)
                 ;; 改
-                (rename 3) (pose 2) (push-into 1) (pop-out 1)
+                (rename 3) (pose 3) (push-into 3) (pop-out 2)
                 ;; 查
                 (enter 2) (upper 1)
                 ;; 保存/退出
@@ -353,6 +353,7 @@
     (nvim #'(lambda (name) `,name '(do-something-here)))
     ;; 删
     (destruct #'(lambda (index) (destruct user-table index)))
+    (trash #'(lambda (index) (trash user-table index)))
     ;; 改
     (rename #'(lambda (index name)
                 (rename-node id-table (get-id user-table index) name)))
