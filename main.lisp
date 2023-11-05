@@ -348,15 +348,27 @@
     (box #'(lambda (name) (new-datum user-table 'containers name)))
     (paper #'(lambda (name) (new-datum user-table 'sheets name)))
     ;; 删
-    (destruct #'(lambda (index) (destruct user-table index)))
-    (trash #'(lambda (index) (trash user-table index)))
+    (destruct #'(lambda (index)
+                  (let* ((target-id (get-id user-table index))
+                         (type (get-type id-table target-id)))
+                    (destruct user-table index)
+                    (if (eq 'sheets type )
+                        (shell (concatenate 'string "rm -f " config-path
+                                            (format nil "~8,0x" target-id)))))))
+    (trash #'(lambda (index)
+               (let* ((target-id (get-id user-table index))
+                      (type (get-type id-table target-id)))
+                 (trash user-table index)
+                 (if (eq 'sheets type )
+                     (shell (concatenate 'string "rm -f " config-path
+                                         (format nil "~8,0x" target-id)))))))
     ;; 改
     (nvim #'(lambda (index)
               (let ((target-id (get-id user-table index)))
                 (if (eq 'containers (get-type id-table target-id))
                   (format t "The operation is not allowed on containers!~%")
                   (shell (concatenate 'string "nvim " config-path
-                                    (format nil "~8,0x" target-id)))))))
+                                      (format nil "~8,0x" target-id)))))))
     (rename #'(lambda (index name)
                 (rename-node id-table (get-id user-table index) name)))
     (pose #'(lambda (index destine) (pose* user-table index destine)))
@@ -379,6 +391,7 @@
                 (format t "~c[2J~c[H" #\escape #\escape)
                 (format t "Sorry about that. The feature is not ready yet! That's awkward.(┭┮ ﹏ ┭┮ )~%")
                 (read-line)
+                `,indx
                 '(do-something-here)))
     (save #'(lambda ()
               (save-id id-table)
