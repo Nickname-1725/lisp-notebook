@@ -36,8 +36,7 @@
   1. type: 'containers / 'sheets
   2. name: 一个字符串"
   (let* ((id (generate-id 8))
-         (id-list (cond ((eq type 'containers) (cont table))
-                        ((eq type 'sheets) (shts table))))
+         (id-list (append (cont table) (shts table)))
          (id-pair (list id name))
          (new-list (cons id-pair id-list)))
     (cond
@@ -358,11 +357,18 @@
     (trash #'(lambda (index)
                (let* ((target-id (get-id user-table index))
                       (type (get-type id-table target-id)))
-                 (trash user-table index)
-                 (if (eq 'sheets type )
-                     (shell (concatenate 'string "rm -f " config-path
-                                         (format nil "~8,0x" target-id)))))))
-    ;; 改
+                 (if (and (not (eq 0 (count-sheets user-table index)))
+                          (eq type 'containers))
+                     (progn
+                       (format t "~c[2J~c[H" #\escape #\escape)
+                       (format t "Containers remaining sheets not allowed to trash!~%")
+                       (read-line))
+                     (progn
+                       (trash user-table index)
+                       (if (eq 'sheets type )
+                           (shell (concatenate 'string "rm -f " config-path
+                                               (format nil "~8,0x" target-id)))))))))
+                         ;; 改
     (nvim #'(lambda (index)
               (let ((target-id (get-id user-table index)))
                 (if (eq 'containers (get-type id-table target-id))
