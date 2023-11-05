@@ -353,7 +353,8 @@
                     (destruct user-table index)
                     (if (eq 'sheets type )
                         (shell (concatenate 'string "rm -f " config-path
-                                            (format nil "~8,0x" target-id)))))))
+                                            (format nil "~8,0x" target-id)
+                                            ".md"))))))
     (trash #'(lambda (index)
                (let* ((target-id (get-id user-table index))
                       (type (get-type id-table target-id)))
@@ -367,7 +368,8 @@
                        (trash user-table index)
                        (if (eq 'sheets type )
                            (shell (concatenate 'string "rm -f " config-path
-                                               (format nil "~8,0x" target-id)))))))))
+                                               (format nil "~8,0x" target-id)
+                                               ".md"))))))))
                          ;; 改
     (nvim #'(lambda (index)
               (let ((target-id (get-id user-table index)))
