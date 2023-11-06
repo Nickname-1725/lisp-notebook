@@ -3,3 +3,5 @@
 *.fas
 .#-emacs*
 *.o
+.config
+build

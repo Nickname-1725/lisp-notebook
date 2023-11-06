@@ -376,7 +376,8 @@
                 (if (eq 'containers (get-type id-table target-id))
                   (format t "The operation is not allowed on containers!~%")
                   (shell (concatenate 'string "nvim " config-path
-                                      (format nil "~8,0x" target-id)))))))
+                                      (format nil "~8,0x" target-id)
+                                      ".md"))))))
     (rename #'(lambda (index name)
                 (rename-node id-table (get-id user-table index) name)))
     (pose #'(lambda (index destine) (pose* user-table index destine)))
