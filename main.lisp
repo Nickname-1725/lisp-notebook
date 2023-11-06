@@ -5,19 +5,21 @@
   (random (ash 2 (1- (* 4 length)))))
 
 (defun save-db (data-base filename)
-  (with-open-file (out (concatenate 'string config-path filename)
-                       :direction :output
-                       :if-exists :supersede
-                       :if-does-not-exist :create)
-    (with-standard-io-syntax
-      (print data-base out))))
+  (let* ((path-to-file (concatenate 'string config-path filename)))
+    (with-open-file (out path-to-file
+                         :direction :output
+                         :if-exists :supersede
+                         :if-does-not-exist :create)
+      (with-standard-io-syntax
+        (print data-base out)))))
 (defmacro load-db (data-base filename)
-  `(let ((file-exists (probe-file ,filename)))
+  `(let* ((path-to-file ,(concatenate 'string config-path filename))
+          (file-exists (probe-file path-to-file)))
      (when file-exists
-         (with-open-file (in ,(concatenate 'string config-path filename)
-                        :if-does-not-exist :error)
-     (with-standard-io-syntax
-       (setf ,data-base (read in)))))))
+       (with-open-file (in path-to-file
+                           :if-does-not-exist :error)
+         (with-standard-io-syntax
+           (setf ,data-base (read in)))))))
 
 ;;;; id-table及其方法
 (defclass id-table ()
@@ -36,17 +38,18 @@
   1. type: 'containers / 'sheets
   2. name: 一个字符串"
   (let* ((id (generate-id 8))
-         (id-list (append (cont table) (shts table)))
-         (id-pair (list id name))
-         (new-list (cons id-pair id-list)))
+         (id-list-cont (cont table))
+         (id-list-shts (shts table))
+         (id-list (append id-list-cont id-list-shts))
+         (id-pair (list id name)))
     (cond
       ; 若id已被占用, 则重新尝试
       ((assoc id id-list) (make-id table type name))
       ; 将id-pair插入列表中
       ((eq type 'containers)
-       (write-cont new-list table) id)
+       (write-cont (cons id-pair id-list-cont) table) id)
       ((eq type 'sheets)
-       (write-shts new-list table) id))))
+       (write-shts (cons id-pair id-list-shts) table) id))))
 
 (defmethod get-node ((table id-table) id method)
   "根据id-表中的id获取结点; 优先获取containers, 然后是sheets"
@@ -370,7 +373,7 @@
                            (shell (concatenate 'string "rm -f " config-path
                                                (format nil "~8,0x" target-id)
                                                ".md"))))))))
-                         ;; 改
+    ;; 改
     (nvim #'(lambda (index)
               (let ((target-id (get-id user-table index)))
                 (if (eq 'containers (get-type id-table target-id))
