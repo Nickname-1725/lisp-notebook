@@ -112,31 +112,47 @@
 ;;; 查找操作
 (defmethod children-list ((table contents-table) node)
   (cadr node))
-(defmethod get-* ((table contents-table) id pred)
-  "get-tree, get-parent, get-depth的通用抽象, 主要为遍历部分"
-  (let* ((root (tree table)))
-    (labels
-        ((遍历 (id node depth)
-           (if (funcall pred node id) (list node depth)
-               (reduce
-                (lambda (x y)
-                  (cond (x x)
-                        (t (遍历 id y (1+ depth)))))
-                (children-list table node) :initial-value nil))))
-      (遍历 id root 1))))
+(defmethod get-*-from-node ((table contents-table) node depth pred manage-hit)
+  "带短路的遍历通用查找函数 ~@
+  depth是node所处的深度; pred是是否命中查找的谓词; manage-hit处理返回何值 ~@
+  由于是带短路, 所以一旦找到, reduced-children不作处理即返回"
+  (labels ((遍历 (node depth)
+             "遍历; ~@
+             reduce不会处理空列表"
+             (if (funcall pred node)
+                 (funcall manage-hit node depth)
+                 (let ((reduced-children
+                         (reduce
+                          (lambda (x child)
+                            (cond (x x)
+                                  (t (遍历 child (1+ depth)))))
+                          (children-list table node) :initial-value nil)))
+                   reduced-children))))
+    (遍历 node depth)))
+(defmethod get-*-from-root ((table contents-table) pred manage-hit)
+  "通用查找函数, 起点为根节点, 可衍生get-tree*, get-parent-tree, get-depth*"
+  (let ((root (tree table)))
+    (get-*-from-node table root 0 pred manage-hit)))
 (defmethod get-tree ((table contents-table) id)
-  "给定一个序号, 查找其在目录表中的数状结构"
-  (car (get-* contents-table id (lambda (node id) (eq id (car node))))))
+  "获取指定id结点"
+  (macrolet ((make-pred (id) `(lambda (node) (eq ,id (car node))))
+             (make-manage-hit () `(lambda (node depth) depth node)))
+    (get-*-from-root table (make-pred id) (make-manage-hit))))
 (defmethod get-parent ((table contents-table) id)
-  "给定一个序号, 查找其在目录表中的父节点"
+  "获取指定id结点的父亲"
   (if (zerop id) nil
-      (car (get-* table id (lambda (node id)
-                             (assoc id (children-list table node)))))))
+      (macrolet
+          ((make-pred (id) `(lambda (node) (assoc ,id (children-list table node))))
+           (make-manage-hit () `(lambda (node depth) depth node)))
+        (get-*-from-root table (make-pred id) (make-manage-hit)))))
 (defmethod get-depth ((table contents-table) id)
-  "给定一个序号, 查找其位于目录表树状图中的层次; 其中, root深度为0"
-  (if (zerop id) 0
-      (cadr (get-* table id (lambda (node id)
-                              (assoc id (children-list table node)))))))
+  "计算制定id结点的深度"
+  (if (zerop id) nil
+      (macrolet
+          ((make-pred (id) `(lambda (node) (assoc ,id (children-list table node))))
+           (make-manage-hit () `(lambda (node depth) node (1+ depth))))
+        (get-*-from-root table (make-pred id) (make-manage-hit)))))
+
 (defmethod flatten ((table contents-table) node depth)
   "目录中给定一个节点, 遍历其下方所有节点, 返回扁平化结构"
   (labels ((遍历 (node depth)
