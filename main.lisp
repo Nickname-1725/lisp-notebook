@@ -137,6 +137,18 @@
   (if (zerop id) 0
       (cadr (get-* table id (lambda (node id)
                               (assoc id (children-list table node)))))))
+(defmethod flatten ((table contents-table) node depth)
+  "目录中给定一个节点, 遍历其下方所有节点, 返回扁平化结构"
+  (labels ((遍历 (node depth)
+             "遍历; depth是node的所在深度; ~@
+             原本以为需要判断叶子结点, 实际上不需要, 因为reduce不会处理空列表"
+             (let ((flatten-children
+                     (reduce
+                      (lambda (x child)
+                        (append x (遍历 child (1+ depth))))
+                      (children-list table node) :initial-value nil)))
+               (append (list (list (car node) depth)) flatten-children))))
+    (遍历 node depth)))
 
 ;;; 树操作
 (defmethod contain ((table contents-table) node container)
