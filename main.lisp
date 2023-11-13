@@ -112,6 +112,10 @@
 ;;; 查找操作
 (defmethod children-list ((table contents-table) node)
   (cadr node))
+(defmethod book-list ((table contents-table))
+  "获取book层级的序号列表"
+  (mapcar (lambda (item) (car item)) (children-list table (tree table))))
+
 (defmethod get-*-from-node ((table contents-table) node depth pred manage-hit)
   "带短路的遍历通用查找函数 ~@
   depth是node所处的深度; pred是是否命中查找的谓词; manage-hit处理返回何值 ~@
@@ -129,6 +133,12 @@
                           (children-list table node) :initial-value nil)))
                    reduced-children))))
     (遍历 node depth)))
+(defmethod get-tree-from-node ((table contents-table) node depth id)
+  "查找位于深度depth的子树node下的一个序号为id的结点"
+  (macrolet ((make-pred (id) `(lambda (node) (eq ,id (car node))))
+             (make-manage-hit () `(lambda (node depth) depth node)))
+    (get-*-from-node table node depth (make-pred id) (make-manage-hit))))
+
 (defmethod get-*-from-root ((table contents-table) pred manage-hit)
   "通用查找函数, 起点为根节点, 可衍生get-tree*, get-parent-tree, get-depth*"
   (let ((root (tree table)))
