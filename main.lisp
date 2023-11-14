@@ -21,6 +21,14 @@
          (with-standard-io-syntax
            (setf ,data-base (read in)))))))
 
+(defun cat-text (target-name obj-name &optional (obj-folder config-path))
+  (let* ((path-to-target (concatenate 'string config-path target-name))
+         (path-to-obj (concatenate 'string obj-folder obj-name)))
+    (shell (concatenate 'string "cat " path-to-target " >> " path-to-obj))))
+(defun append-to-text (target-string obj-name &optional (obj-folder config-path))
+  (let* ((path-to-obj (concatenate 'string obj-folder obj-name)))
+    (shell (concatenate 'string "echo " target-string " >> " path-to-obj))))
+
 ;;;; id-table及其方法
 (defclass id-table ()
   ((containers :accessor cont
