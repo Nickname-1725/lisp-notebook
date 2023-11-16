@@ -287,7 +287,6 @@
 
 ;;;; 用户交互
 
-
 (defun editor-call (index editor)
   "用给定editor打开指定纸张对应的文件, editor须为字符串"
   (let ((target-id (car (get-item user-stack index))))
@@ -296,6 +295,28 @@
         (shell (concatenate 'string editor " " config-path
                             (format nil "~8,'0x" target-id)
                             ".md")))))
+
+(defun dump-plain-Markdown (struct-list)
+  (let* ((toc-list (cdr struct-list)))
+    '(do-something-here)
+    "遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
+    然后再决定追加字符串还是拼接文本"
+    (reduce (lambda (x item) `,x
+              (let* ((id (car item))
+                     (type (get-type id-table id)))
+                (cond
+                  ((eq 'containers type)
+                   (append-to-text
+                    (concatenate
+                     'string (case (cadr item)
+                               (1 "# ") (2 "## ") (3 "### ") (4 "#### "))
+                     (get-name id-table id))
+                    "preview.md"))
+                  ((eq 'sheets type)
+                   (cat-text
+                    (concatenate 'string (format nil "~8,'0x" id) ".md")
+                    "preview.md")))))
+            toc-list)))
 
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)
