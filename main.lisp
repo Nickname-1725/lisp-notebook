@@ -27,7 +27,7 @@
     (shell (concatenate 'string "cat " path-to-target " >> " path-to-obj))))
 (defun append-to-text (target-string obj-name &optional (obj-folder config-path))
   (let* ((path-to-obj (concatenate 'string obj-folder obj-name)))
-    (shell (concatenate 'string "echo " target-string " >> " path-to-obj))))
+    (shell (concatenate 'string "echo \"" target-string "\" >> " path-to-obj))))
 
 ;;;; id-table及其方法
 (defclass id-table ()
@@ -312,13 +312,11 @@
                      'string (case (cadr item)
                                (1 "# ") (2 "## ") (3 "### ") (4 "#### "))
                      (get-name id-table id))))
-              ;(append-to-text caption-name "preview.md")
-              (format t "~a~%" caption-name)))
+              (append-to-text caption-name "preview.md")))
            ((eq 'sheets type) ; 纸张: 拼接文本
             (let ((target-file-name
                     (concatenate 'string (format nil "~8,'0x" id) ".md")))
-              ;(cat-text target-file-name "preview.md")
-              (format t "~a~%" target-file-name))))))
+              (cat-text target-file-name "preview.md"))))))
      toc-list)))
 
 (defun user-read ()
