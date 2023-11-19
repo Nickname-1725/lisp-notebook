@@ -301,22 +301,25 @@
     '(do-something-here)
     "遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
     然后再决定追加字符串还是拼接文本"
-    (reduce (lambda (x item) `,x
-              (let* ((id (car item))
-                     (type (get-type id-table id)))
-                (cond
-                  ((eq 'containers type)
-                   (append-to-text
+    (reduce
+     (lambda (x item) `,x
+       (let* ((id (car item))
+              (type (get-type id-table id)))
+         (cond
+           ((eq 'containers type) ; 容器: 生成标题
+            (let ((caption-name
                     (concatenate
                      'string (case (cadr item)
                                (1 "# ") (2 "## ") (3 "### ") (4 "#### "))
-                     (get-name id-table id))
-                    "preview.md"))
-                  ((eq 'sheets type)
-                   (cat-text
-                    (concatenate 'string (format nil "~8,'0x" id) ".md")
-                    "preview.md")))))
-            toc-list)))
+                     (get-name id-table id))))
+              ;(append-to-text caption-name "preview.md")
+              (format t "~a~%" caption-name)))
+           ((eq 'sheets type) ; 纸张: 拼接文本
+            (let ((target-file-name
+                    (concatenate 'string (format nil "~8,'0x" id) ".md")))
+              ;(cat-text target-file-name "preview.md")
+              (format t "~a~%" target-file-name))))))
+     toc-list)))
 
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)
