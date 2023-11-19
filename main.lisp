@@ -339,6 +339,14 @@
     (remove-node id-table target-id))
   (update-list table))
 
+
+;;;; 用户栈及其方法
+(defclass user-stack ()
+  ((stack :accessor access
+          :initform '()))
+  (:documentation "用户栈，储存进入树结构中，当前结点和向上的结点，除了根节点"))
+(defparameter user-stack (make-instance 'user-stack))
+
 ;;;; 用户交互
 
 (defun user-read ()
