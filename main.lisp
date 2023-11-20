@@ -387,6 +387,26 @@
     (length children)))
 
 ;;; 改
+(defmethod enter ((ustack user-stack) index)
+  "获取索引对应的项目, 进入该项目, 并且压入栈内"
+  (push (get-item ustack index) (access ustack)))
+(defmethod upper ((ustack user-stack))
+  "将当前项目弹出栈, 类似于切换到上一级(自动防止根节点操作, 若操作, 返回nil)"
+  (pop (access ustack)))
+(defmethod pose* ((ustack user-stack) index destn)
+  "将当前目录下index移动到索引为destn的位置"
+  (pose contents-table (list-items ustack) index destn))
+(defmethod push-into ((ustack user-stack) index destn)
+  (let* ((target (get-item ustack index))
+         (destn-item (get-item ustack destn)))
+    (remove-tree contents-table target)
+    (contain contents-table target destn-item)))
+(defmethod pop-out ((ustack user-stack) index)
+  (let* ((target (get-item ustack index))
+         (senior-parent (cadr (access ustack))))
+    (unless (eq nil senior-parent) ; 若无法获取比当前目录更高的目录, 则无法完成操作
+      (remove-tree contents-table target)
+      (contain contents-table target senior-parent))))
 
 ;;;; 用户交互
 
