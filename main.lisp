@@ -199,12 +199,15 @@
              (before (filt-redundent (subseq lst 0 split-index) elem))
              (after  (filt-redundent (subseq lst split-index) elem)))
         (setf (get-lst) (append before (list elem) after))))))
+(defmethod remove-from-parent ((table contents-table) parent node)
+  "给定node的父结点, 从子结点中移除node"
+  (macrolet ((get-siblings () `(cadr parent)))
+    (setf (get-siblings) (remove-if (lambda (x) (eq x node)) (get-siblings)))))
 (defmethod remove-tree ((table contents-table) node)
   "给定一个节点, 将其从contents-table中移除"
   (let* ((node-id (car node))
          (parent (get-parent table node-id)))
-    (macrolet ((get-siblings () `(cadr parent)))
-      (setf (get-siblings) (remove-if (lambda (x) (eq x node)) (get-siblings))))))
+    (remove-from-parent table parent node)))
 (defmethod save-contents ((table contents-table))
   (save-db (tree table) "contents.db"))
 (defmethod load-contents ((table contents-table))
@@ -398,14 +401,16 @@
   (pose contents-table (list-items ustack) index destn))
 (defmethod push-into ((ustack user-stack) index destn)
   (let* ((target (get-item ustack index))
+         (current (access ustack))
          (destn-item (get-item ustack destn)))
-    (remove-tree contents-table target)
+    (remove-from-parent contents-table current target)
     (contain contents-table target destn-item)))
 (defmethod pop-out ((ustack user-stack) index)
   (let* ((target (get-item ustack index))
-         (senior-parent (cadr (access ustack))))
+         (current (access ustack))
+         (senior-parent (cadr current)))
     (unless (eq nil senior-parent) ; 若无法获取比当前目录更高的目录, 则无法完成操作
-      (remove-tree contents-table target)
+      (remove-from-parent contents-table current target)
       (contain contents-table target senior-parent))))
 
 ;;; 增
@@ -418,20 +423,21 @@
 ;;; 删
 (defmethod trash ((ustack user-stack) item)
   "清除item的结点及其下方的所有数据(id单独清除)"
-  (let* ((below (flatten contents-table item 0)))
-    (remove-tree contents-table item) ; 可优化
+  (let* ((below (flatten contents-table item 0))
+         (current (access ustack)))
+    (remove-from-parent contents-table current item) ; 可优化
     (mapcar (lambda (item)
               (let ((id (car item)))
                 (remove-node id-table id)))
             below)))
 (defmethod destruct ((ustack user-stack) item)
   "清除item的结点, 保留其子结点, 并且子结点自动上移"
-  (let* ((parent (access ustack))
+  (let* ((current (access ustack))
          (item item)
          (id (car item))
          (children (children-list contents-table item)))
-    (nconc (children-list contents-table parent) children)
-    (remove-tree contents-table item)
+    (nconc (children-list contents-table current) children)
+    (remove-from-parent contents-table current item)
     (remove-node id-table id)))
 
 ;;;; 用户交互
