@@ -213,136 +213,6 @@
 (defmethod load-contents ((table contents-table))
   (load-db (tree table) "contents.db"))
 
-;;;; user-table
-(defclass user-table ()
-  ((disp-list :accessor get-list
-              :initform '()
-              :writer write-list)
-   (parent :accessor get-parnt
-           :initform 0
-           :writer write-parnt))
-  (:documentation
-   "用户表, 获取contents-table的数据, 操作contents-table和id-tabel. "))
-
-(defparameter user-table (make-instance 'user-table))
-
-;;; 查
-(defmethod get-id ((table user-table) index)
-  "根据索引从`disp-list`中获取序号"
-  (let ((disp-list (get-list table)))
-    (if (or (< index 1) (> index (length disp-list)))
-        (error "The index invalid! (shall be 1, 2, 3, ...)"))
-    (elt (get-list table) (1- index))))
-(defmethod empty-p ((table user-table) id)
-  "根据序号判断其内部是否为空"
-  (not (children-list contents-table (get-tree contents-table id))))
-(defmethod get-type-for-user ((table user-table) id)
-  "根据序号获取类型(containers/sheets)以及深度, 
-   从而判断用户使用的类型(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)"
-  (let ((depth (get-depth contents-table id))
-        (type (get-type id-table id)))
-    (if (eq type 'containers)
-        (cond ((eq depth 1) 'BOOK)
-              ((eq depth 2) 'CHAPTR)
-              ((eq depth 3) 'SECTN)
-              ((eq depth 4) 'SUBSEC)
-              ((eq depth 5) 'SS-SEC))
-        'SHEET)))
-(defmethod count-sheets ((table user-table) id)
-  "根据id递归式获取其下方sheets类型数据的个数"
-  (let* ((target (get-tree contents-table id)))
-    (labels ((遍历 (node)
-               (cond
-                 ((eq 'sheets (get-type id-table (car node))) 1)
-                 (t (reduce
-                     (lambda (x y)
-                       (+ x (遍历 y)))
-                     (children-list contents-table node) :initial-value 0)))))
-      (遍历 target))))
-(defmethod count-items ((table user-table) id)
-  "根据id获取其下方节点个数"
-  (let* ((target (get-tree contents-table id))
-         (children (children-list contents-table target)))
-    (length children)))
-
-;;; 改
-(defmethod update-list ((table user-table))
-  "更新user-table中的`disp-list`"
-  (write-list
-   (mapcar #'car (children-list
-                  contents-table
-                  (get-tree contents-table (get-parnt table))))
-   table))
-(defmethod cd* ((table user-table) index)
-  "获取索引对应的id, 将其设置为parent, 类似于进入文件夹"
-  (write-parnt (get-id table index) table)
-  (update-list table))
-(defmethod cd.. ((table user-table))
-  "从parent获取父节点序号, 设置为parent, 类似与切换到上一级"
-  (write-parnt (car (get-parent contents-table (get-parnt table)))
-               table)
-  (update-list table))
-
-(defmethod pose* ((table user-table) index destine)
-  (pose contents-table
-        (get-tree contents-table (get-parnt table))
-        index destine)
-  (update-list table))
-
-(defmethod push-into ((table user-table) index destine)
-  (let ((target (get-tree contents-table (get-id user-table index))))
-    (remove-tree contents-table target)
-    (contain contents-table
-             target
-             (get-tree contents-table (get-id user-table destine)))) 
-  (update-list table))
-
-(defmethod pop-out ((table user-table) index)
-  (let ((target (get-tree contents-table (get-id user-table index))))
-    (remove-tree contents-table target)
-    (contain contents-table
-             target
-             (get-parent contents-table (get-parnt table)))) 
-  (update-list table))
-
-;;; 增
-(defmethod new-datum ((table user-table) class name)
-  "新建名称为`name`的数据, 类型为class(containers/sheets)"
-  (let* ((new-id (make-id id-table class name))
-         (parent-id (get-parnt table)))
-    (contain contents-table (create-node contents-table new-id)
-             (get-tree contents-table parent-id))
-    (update-list table)))
-
-;;; 删
-(defmethod trash ((table user-table) index)
-  "递归式清除索引为index及其下方的所有数据"
-  (labels ((遍历 (id)
-             (cond
-               ((empty-p user-table id))
-               (t (reduce
-                   (lambda (x y)
-                     `,x
-                     (遍历 (car y)))
-                   (children-list contents-table (get-tree contents-table id))
-                   :initial-value nil)))
-             (remove-tree contents-table (get-tree contents-table id))
-             (remove-node id-table id)))
-    (遍历 (get-id user-table index)))
-  (update-list table))
-
-(defmethod destruct ((table user-table) index)
-  "清除索引为index的节点, 保留其子节点, 并且子节点自动上移"
-  (let* ((target-id (get-id user-table index))
-         (parent (get-parent contents-table target-id))
-         (target (get-tree contents-table target-id))
-         (children (children-list contents-table target)))
-    (nconc (children-list contents-table parent) children)
-    (remove-tree contents-table target)
-    (remove-node id-table target-id))
-  (update-list table))
-
-
 ;;;; 用户栈及其方法
 (defclass user-stack ()
   ((stack :accessor access
@@ -449,7 +319,8 @@
                (concatenate 'string "(" (read-line) ")" )))
          (operands (mapcar (lambda (item)
                              (cond ((numberp item)
-                                    (if (or (> item (length (get-list user-table)))
+                                    (if (or (> item (length
+                                                     (cadr (list-items user-stack))))
                                             (< item 1))
                                         nil
                                         item))
@@ -486,57 +357,60 @@
                 ;; 保存/退出
                 (export 2) (save 1))
     ;; 增
-    (box #'(lambda (name) (new-datum user-table 'containers name)))
-    (paper #'(lambda (name) (new-datum user-table 'sheets name)))
+    (box #'(lambda (name) (new-datum user-stack 'containers name)))
+    (paper #'(lambda (name) (new-datum user-stack 'sheets name)))
     ;; 删
     (destruct #'(lambda (index)
-                  (let* ((target-id (get-id user-table index))
-                         (type (get-type id-table target-id)))
-                    (destruct user-table index)
-                    (if (eq 'sheets type )
+                  (let* ((item (get-item user-stack index))
+                         (id (car item))
+                         (type (get-type id-table id)))
+                    (destruct user-stack item)
+                    (if (eq 'sheets type)
                         (shell (concatenate 'string "rm -f " config-path
-                                            (format nil "~8,'0x" target-id)
+                                            (format nil "~8,'0x" id)
                                             ".md"))))))
     (trash #'(lambda (index)
-               (let* ((target-id (get-id user-table index))
-                      (type (get-type id-table target-id)))
-                 (if (and (not (eq 0 (count-sheets user-table index)))
-                          (eq type 'containers))
-                     (progn
-                       (format t "~c[2J~c[H" #\escape #\escape)
-                       (format t "Containers remaining sheets not allowed to trash!~%")
-                       (read-line))
-                     (progn
-                       (trash user-table index)
-                       (if (eq 'sheets type )
-                           (shell (concatenate 'string "rm -f " config-path
-                                               (format nil "~8,'0x" target-id)
-                                               ".md"))))))))
+               `,index
+               ;(let* ((target-id (get-id user-table index))
+               ;       (type (get-type id-table target-id)))
+               ;  (if (and (not (eq 0 (count-sheets user-table index)))
+               ;           (eq type 'containers))
+               ;      (progn
+               ;        (format t "~c[2J~c[H" #\escape #\escape)
+               ;        (format t "Containers remaining sheets not allowed to trash!~%")
+               ;        (read-line))
+               ;      (progn
+               ;        (trash user-table index)
+               ;        (if (eq 'sheets type )
+               ;            (shell (concatenate 'string "rm -f " config-path
+               ;                                (format nil "~8,'0x" target-id)
+               ;                                ".md"))))))
+               '(do-something-here)))
     ;; 改
     (nvim #'(lambda (index)
-              (let ((target-id (get-id user-table index)))
+              (let ((target-id (car (get-item user-stack index))))
                 (if (eq 'containers (get-type id-table target-id))
-                  (format t "The operation is not allowed on containers!~%")
-                  (shell (concatenate 'string "nvim " config-path
-                                      (format nil "~8,'0x" target-id)
-                                      ".md"))))))
+                    (format t "The operation is not allowed on containers!~%")
+                    (shell (concatenate 'string "nvim " config-path
+                                        (format nil "~8,'0x" target-id)
+                                        ".md"))))))
     (rename #'(lambda (index name)
-                (rename-node id-table (get-id user-table index) name)))
-    (pose #'(lambda (index destine) (pose* user-table index destine)))
-    (push-into #'(lambda (index destine)
-                   (if (eq 'sheets (get-type id-table (get-id user-table destine)))
+                (rename-node id-table (car (get-item user-stack index)) name)))
+    (pose #'(lambda (index destine) (pose* user-stack index destine)))
+    (push-into #'(lambda (index destn)
+                   (if (eq 'sheets (get-type id-table
+                                             (car (get-item user-stack destn))))
                        (format t "Do not push anything into sheets!~%")
-                       (push-into user-table index destine))))
-    (pop-out #'(lambda (index) (pop-out user-table index)))
+                       (push-into user-stack index destn))))
+    (pop-out #'(lambda (index) (pop-out user-stack index)))
     ;; 查
     (enter #'(lambda (index)
-               (if (eq 'sheets (get-type id-table (get-id user-table index)))
+               (if (eq 'sheets (get-type id-table (car (get-item user-stack index))))
                    (format t "You can not *enter* a sheet!~%")
-                   (cd* user-table index))))
+                   (enter user-stack index))))
     (upper #'(lambda ()
-               (if (eq 0 (get-parnt user-table))
-                   (format t "This has been the *root*!~%")
-                   (cd.. user-table))))
+               (unless (upper user-stack) ; 若向上目录为空, 则提示已经位于根结点
+                 (format t "This has been the *root*!~%"))))
     ;; 保存/退出
     (export #'(lambda (indx)
                 (format t "~c[2J~c[H" #\escape #\escape)
@@ -554,26 +428,27 @@
 
 (defun display-list ()
   "依次打印当前目录内的项目"
-  (let* ((user-list (get-list user-table))
+  (let* ((user-list (cadr(list-items user-stack)))
          (index-list (loop for i from 1 to (length user-list)
                            collect i))
          (imformation-list
            (mapcar
-            (lambda (x index)
-              (if (eq 'containers (get-type id-table x))
+            (lambda (item index)
+              (if (eq 'containers (get-type id-table (car item)))
                   (list index
-                        (get-type-for-user user-table x)
-                        (if (empty-p user-table x) 'empty 'full)
-                        (count-sheets user-table x)
-                        (count-items user-table x)
-                        (get-name id-table x))
-                  (list index 'sheet "-" "-" "-" (get-name id-table x))))
+                        (get-type-for-user user-stack item)
+                        (if (empty-p user-stack item) 'empty 'full)
+                        (count-sheets user-stack item)
+                        (count-items user-stack item)
+                        (get-name id-table (car item)))
+                  (list index 'sheet "-" "-" "-" (get-name id-table (car item)))))
             user-list
             index-list)))
     (format t "======== NOW: ~a ========~%"
-            (let* ((parent-id (get-parnt user-table))
-                   (parent-name (if (eq 0 parent-id) '*ROOT*
-                                    (get-name id-table parent-id))))
+            (let* ((current (access user-stack))
+                   (current-id (car current))
+                   (parent-name (if (eq nil current) '*ROOT*
+                                    (get-name id-table current-id))))
               parent-name))
     (format t "~{~{~a~3t~a~10t~a~16t(~a sheets in ~a items) ~40t\"~a\"~}~%~}"
             imformation-list)))
@@ -603,8 +478,7 @@
 
 (defun load-all ()
   (load-id id-table)
-  (load-contents contents-table)
-  (update-list user-table))
+  (load-contents contents-table))
 
 (defun main-repl ()
   (format t "The note-book launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
