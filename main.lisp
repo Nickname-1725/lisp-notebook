@@ -408,6 +408,32 @@
       (remove-tree contents-table target)
       (contain contents-table target senior-parent))))
 
+;;; 增
+(defmethod new-datum ((ustack user-stack) class name)
+  "新建名称为name的数据, 类型为class(containers/sheets)"
+  (contain contents-table
+           (create-node contents-table (make-id id-table class name))
+           (access ustack)))
+
+;;; 删
+(defmethod trash ((ustack user-stack) item)
+  "清除item的结点及其下方的所有数据(id单独清除)"
+  (let* ((below (flatten contents-table item 0)))
+    (remove-tree contents-table item) ; 可优化
+    (mapcar (lambda (item)
+              (let ((id (car item)))
+                (remove-node id-table id)))
+            below)))
+(defmethod destruct ((ustack user-stack) item)
+  "清除item的结点, 保留其子结点, 并且子结点自动上移"
+  (let* ((parent (access ustack))
+         (item item)
+         (id (car item))
+         (children (children-list contents-table item)))
+    (nconc (children-list contents-table parent) children)
+    (remove-tree contents-table item)
+    (remove-node id-table id)))
+
 ;;;; 用户交互
 
 (defun user-read ()
