@@ -347,6 +347,47 @@
   (:documentation "用户栈，储存进入树结构中，当前结点和向上的结点，除了根节点"))
 (defparameter user-stack (make-instance 'user-stack))
 
+(defmethod list-items ((ustack user-stack))
+  "从用户栈中读取当前的列表(目录树结构的结点)"
+  (let* ((current-list (car (access ustack))))
+    (if (eq nil current-list)
+        (tree contents-table) ; 如果栈空, 则访问根节点
+        current-list)))
+;;; 查
+(defmethod get-item ((ustack user-stack) index)
+  "根据索引从当前列表中获取项目"
+  (nth (1- index) (cadr (list-items ustack))))
+(defmethod empty-p ((ustack user-stack) item)
+  "判断指定项目内部是否为空"
+  (not (children-list contents-table item)))
+(defmethod count-depth ((ustack user-stack))
+  "获取当前所在目录树的深度"
+  (length (access ustack)))
+(defmethod get-type-for-user ((ustack user-stack) item)
+  "获取指定项目的类型(containers/sheets)以及深度,~@
+  从而判断用户使用的类型(BOOK, CHAPTR, SECTN, SUBSEC, SS-SEC, SHEET)"
+  (let* ((id (car item))
+         (depth (1+ (count-depth ustack)))
+         (type (get-type id-table id)))
+    (if (eq type 'containers)
+        (case depth (1 'BOOK) (2 'CHAPTR) (3 'SECTN) (4 'SUBSEC) (5 'SS-SEC))
+        'SHEET)))
+(defmethod count-sheets ((ustack user-stack) item)
+  (let* ((below (flatten contents-table item 0))
+         (sheet-list (remove-if-not
+                      (lambda (item)
+                        "获得所有纸张"
+                        (let* ((id (car item))
+                               (type (get-type id-table id)))
+                          (eq type 'sheets)))
+                      below)))
+    (length sheet-list)))
+(defmethod count-items ((ustack user-stack) item)
+  (let* ((children (children-list contents-table item)))
+    (length children)))
+
+;;; 改
+
 ;;;; 用户交互
 
 (defun user-read ()
