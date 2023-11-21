@@ -226,6 +226,11 @@
     (if (eq nil current-list)
         (tree contents-table) ; 如果栈空, 则访问根节点
         current-list)))
+(defmethod list-siblings ((ustack user-stack))
+  (let* ((senior-parent (cadr (access ustack))))
+    (if (eq nil senior-parent)
+        (tree contents-table) ; 如果栈空, 则访问根节点
+        senior-parent)))
 ;;; 查
 (defmethod get-item ((ustack user-stack) index)
   "根据索引从当前列表中获取项目"
@@ -271,24 +276,24 @@
   (pose contents-table (list-items ustack) index destn))
 (defmethod push-into ((ustack user-stack) index destn)
   (let* ((target (get-item ustack index))
-         (current (access ustack))
+         (current (list-items ustack))
          (destn-item (get-item ustack destn)))
     (remove-from-parent contents-table current target)
     (contain contents-table target destn-item)))
 (defmethod pop-out ((ustack user-stack) index)
   (let* ((target (get-item ustack index))
-         (current (access ustack))
-         (senior-parent (cadr current)))
-    (unless (eq nil senior-parent) ; 若无法获取比当前目录更高的目录, 则无法完成操作
-      (remove-from-parent contents-table current target)
-      (contain contents-table target senior-parent))))
+         (current (list-items ustack))
+         (senior-parent (list-siblings ustack)))
+    (remove-from-parent contents-table current target)
+    (contain contents-table target senior-parent)
+    (upper ustack)))
 
 ;;; 增
 (defmethod new-datum ((ustack user-stack) class name)
   "新建名称为name的数据, 类型为class(containers/sheets)"
   (contain contents-table
            (create-node contents-table (make-id id-table class name))
-           (access ustack)))
+           (list-items ustack)))
 
 ;;; 删
 (defmethod trash ((ustack user-stack) item)
@@ -302,7 +307,7 @@
             below)))
 (defmethod destruct ((ustack user-stack) item)
   "清除item的结点, 保留其子结点, 并且子结点自动上移"
-  (let* ((current (access ustack))
+  (let* ((current (list-items ustack))
          (item item)
          (id (car item))
          (children (children-list contents-table item)))
