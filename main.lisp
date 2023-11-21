@@ -375,22 +375,18 @@
                                             (format nil "~8,'0x" id)
                                             ".md"))))))
     (trash #'(lambda (index)
-               `,index
-               ;(let* ((target-id (get-id user-table index))
-               ;       (type (get-type id-table target-id)))
-               ;  (if (and (not (eq 0 (count-sheets user-table index)))
-               ;           (eq type 'containers))
-               ;      (progn
-               ;        (format t "~c[2J~c[H" #\escape #\escape)
-               ;        (format t "Containers remaining sheets not allowed to trash!~%")
-               ;        (read-line))
-               ;      (progn
-               ;        (trash user-table index)
-               ;        (if (eq 'sheets type )
-               ;            (shell (concatenate 'string "rm -f " config-path
-               ;                                (format nil "~8,'0x" target-id)
-               ;                                ".md"))))))
-               '(do-something-here)))
+               (let* ((item (get-item user-stack index))
+                      (below (flatten contents-table item 0)))
+                 (trash user-stack item)
+                 (mapcar
+                  (lambda (item)
+                    (let* ((id (car item))
+                           (type (get-type id-table id)))
+                      (if (eq 'sheets type)
+                          (shell (concatenate 'string "rm -f" config-path
+                                              (format nil "~8,'0x" id)
+                                              ".md")))))
+                  below))))
     ;; 改
     (nvim #'(lambda (index)
               (let ((target-id (car (get-item user-stack index))))
@@ -407,7 +403,9 @@
                                              (car (get-item user-stack destn))))
                        (format t "Do not push anything into sheets!~%")
                        (push-into user-stack index destn))))
-    (pop-out #'(lambda (index) (pop-out user-stack index)))
+    (pop-out #'(lambda (index)
+                 (unless (pop-out user-stack index)
+                   (format t "This has been the *root*, stop popping out anything!~%"))))
     ;; 查
     (enter #'(lambda (index)
                (if (eq 'sheets (get-type id-table (car (get-item user-stack index))))
