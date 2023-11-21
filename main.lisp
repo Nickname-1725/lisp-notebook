@@ -261,7 +261,7 @@
 (defmethod trash ((ustack user-stack) item)
   "清除item的结点及其下方的所有数据(id单独清除)"
   (let* ((below (flatten contents-table item 0))
-         (current (access ustack)))
+         (current (list-items ustack)))
     (remove-from-parent contents-table current item) ; 可优化
     (mapcar (lambda (item)
               (let ((id (car item)))
@@ -345,7 +345,10 @@
                     (let* ((id (car item))
                            (type (get-type id-table id)))
                       (if (eq 'sheets type)
-                          (shell (concatenate 'string "rm -f" config-path
+                          (format t "~a" (concatenate 'string "rm -f " config-path
+                                              (format nil "~8,'0x" id)
+                                              ".md"))
+                          (shell (concatenate 'string "rm -f " config-path
                                               (format nil "~8,'0x" id)
                                               ".md")))))
                   below))))
@@ -410,10 +413,10 @@
             user-list
             index-list)))
     (format t "======== NOW: ~a ========~%"
-            (let* ((current (access user-stack))
+            (let* ((current (list-items user-stack))
                    (current-id (car current))
-                   (parent-name (if (eq nil current) '*ROOT*
-                                    (get-name id-table current-id))))
+                   (name (get-name id-table current-id))
+                   (parent-name (if (eq nil name) '*ROOT* name)))
               parent-name))
     (format t "~{~{~a~3t~a~10t~a~16t(~a sheets in ~a items) ~40t\"~a\"~}~%~}"
             imformation-list)))
