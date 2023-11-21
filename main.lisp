@@ -112,9 +112,6 @@
 ;;; 查找操作
 (defmethod children-list ((table contents-table) node)
   (cadr node))
-(defmethod book-list ((table contents-table))
-  "获取book层级的序号列表"
-  (mapcar (lambda (item) (car item)) (children-list table (tree table))))
 
 (defmethod get-*-from-node ((table contents-table) node depth pred manage-hit)
   "带短路的遍历通用查找函数 ~@
@@ -133,36 +130,6 @@
                           (children-list table node) :initial-value nil)))
                    reduced-children))))
     (遍历 node depth)))
-(defmethod get-tree-from-node ((table contents-table) node depth id)
-  "查找位于深度depth的子树node下的一个序号为id的结点"
-  (macrolet ((make-pred (id) `(lambda (node) (eq ,id (car node))))
-             (make-manage-hit () `(lambda (node depth) depth node)))
-    (get-*-from-node table node depth (make-pred id) (make-manage-hit))))
-
-(defmethod get-*-from-root ((table contents-table) pred manage-hit)
-  "通用查找函数, 起点为根节点, 可衍生get-tree*, get-parent-tree, get-depth*"
-  (let ((root (tree table)))
-    (get-*-from-node table root 0 pred manage-hit)))
-(defmethod get-tree ((table contents-table) id)
-  "获取指定id结点"
-  (macrolet ((make-pred (id) `(lambda (node) (eq ,id (car node))))
-             (make-manage-hit () `(lambda (node depth) depth node)))
-    (get-*-from-root table (make-pred id) (make-manage-hit))))
-(defmethod get-parent ((table contents-table) id)
-  "获取指定id结点的父亲"
-  (if (zerop id) nil
-      (macrolet
-          ((make-pred (id) `(lambda (node) (assoc ,id (children-list table node))))
-           (make-manage-hit () `(lambda (node depth) depth node)))
-        (get-*-from-root table (make-pred id) (make-manage-hit)))))
-(defmethod get-depth ((table contents-table) id)
-  "计算制定id结点的深度"
-  (if (zerop id) nil
-      (macrolet
-          ((make-pred (id) `(lambda (node) (assoc ,id (children-list table node))))
-           (make-manage-hit () `(lambda (node depth) node (1+ depth))))
-        (get-*-from-root table (make-pred id) (make-manage-hit)))))
-
 (defmethod flatten ((table contents-table) node depth)
   "目录中给定一个节点, 遍历其下方所有节点, 返回扁平化结构"
   (labels ((遍历 (node depth)
@@ -203,11 +170,6 @@
   "给定node的父结点, 从子结点中移除node"
   (macrolet ((get-siblings () `(cadr parent)))
     (setf (get-siblings) (remove-if (lambda (x) (eq x node)) (get-siblings)))))
-(defmethod remove-tree ((table contents-table) node)
-  "给定一个节点, 将其从contents-table中移除"
-  (let* ((node-id (car node))
-         (parent (get-parent table node-id)))
-    (remove-from-parent table parent node)))
 (defmethod save-contents ((table contents-table))
   (save-db (tree table) "contents.db"))
 (defmethod load-contents ((table contents-table))
