@@ -279,6 +279,16 @@
 
 ;;;; 用户交互
 
+
+(defun editor-call (index editor)
+  "用给定editor打开指定纸张对应的文件, editor须为字符串"
+  (let ((target-id (car (get-item user-stack index))))
+    (if (eq 'containers (get-type id-table target-id))
+        (format t "The operation is not allowed on containers!~%")
+        (shell (concatenate 'string editor " " config-path
+                            (format nil "~8,'0x" target-id)
+                            ".md")))))
+
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)
   去除所有越界索引, 以及除数字及字符串外的输入"
@@ -318,7 +328,7 @@
                 ;; 删
                 (destruct 2) (trash 2)
                 ;; 改
-                (nvim 2)(rename 3) (pose 3) (push-into 3) (pop-out 2)
+                (nvim 2) (code 2) (rename 3) (pose 3) (push-into 3) (pop-out 2)
                 ;; 查
                 (enter 2) (upper 1)
                 ;; 保存/退出
@@ -353,13 +363,8 @@
                                               ".md")))))
                   below))))
     ;; 改
-    (nvim #'(lambda (index)
-              (let ((target-id (car (get-item user-stack index))))
-                (if (eq 'containers (get-type id-table target-id))
-                    (format t "The operation is not allowed on containers!~%")
-                    (shell (concatenate 'string "nvim " config-path
-                                        (format nil "~8,'0x" target-id)
-                                        ".md"))))))
+    (nvim #'(lambda (index) (editor-call index "nvim")))
+    (code #'(lambda (index) (editor-call index "code")))
     (rename #'(lambda (index name)
                 (rename-node id-table (car (get-item user-stack index)) name)))
     (pose #'(lambda (index destine) (pose* user-stack index destine)))
@@ -431,7 +436,8 @@
      ("destruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
      ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too.")
      ;; 改
-     ("nvim index" "Edit the sheet with Noevim(shall have been installed).")
+     ("nvim index" "Edit the sheet with Noevim(shall has been installed).")
+     ("code index" "Edit the sheet with VSCode(shall has been installed).")
      ("rename indx \"name\"" "Rename a container/sheet. ")
      ("pose indx destn" "Move a container/sheet to the destination.")
      ("push-into indx destn" "Push a container/sheet into the destination.")
