@@ -409,21 +409,27 @@
             (lambda (item index)
               (if (eq 'containers (get-type id-table (car item)))
                   (list index
-                        (get-type-for-user user-stack item)
-                        (if (empty-p user-stack item) 'empty 'full)
+                        (format nil "~c[1m~a~c[0m"
+                                #\escape (get-type-for-user user-stack item) #\escape)
+                        (if (empty-p user-stack item)
+                            (format nil "~c[31mEMPTY~c[0m" #\escape #\escape) "FULL ")
                         (count-sheets user-stack item)
                         (count-items user-stack item)
                         (get-name id-table (car item)))
                   (list index 'sheet "-" "-" "-" (get-name id-table (car item)))))
             user-list
             index-list)))
-    (format t "======== NOW: ~a ========~%"
+    (format t "======== NOW: ~c[4m~a~c[0m ========~%"
+            #\escape
             (let* ((current (list-items user-stack))
                    (current-id (car current))
                    (name (get-name id-table current-id))
-                   (parent-name (if (eq nil name) '*ROOT* name)))
-              parent-name))
-    (format t "~{~{~a~3t~a~10t~a~16t(~a sheets in ~a items) ~40t\"~a\"~}~%~}"
+                   (parent-name
+                     (if (eq nil name)
+                         (format nil "~c[1m*ROOT*~c[1m" #\escape #\escape) name)))
+              parent-name)
+            #\escape)
+    (format t "~{~{~a~3t~a~10t~a~16t(~2,' d~20tsheets in ~2,' d~32titems)~40t\"~a\"~}~%~}"
             imformation-list)))
 
 (defun print-description ()
