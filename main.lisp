@@ -409,14 +409,14 @@
             (lambda (item index)
               (if (eq 'containers (get-type id-table (car item)))
                   (list index
-                        (format nil "~c[1m~a~c[0m"
+                        (format nil "~c[1m~6A~c[0m"
                                 #\escape (get-type-for-user user-stack item) #\escape)
                         (if (empty-p user-stack item)
                             (format nil "~c[31mEMPTY~c[0m" #\escape #\escape) "FULL ")
                         (count-sheets user-stack item)
                         (count-items user-stack item)
                         (get-name id-table (car item)))
-                  (list index 'sheet "-" "-" "-" (get-name id-table (car item)))))
+                  (list index "SHEET " "-    " "-" "-" (get-name id-table (car item)))))
             user-list
             index-list)))
     (format t "======== NOW: ~c[4m~a~c[0m ========~%"
@@ -429,7 +429,7 @@
                          (format nil "~c[1m*ROOT*~c[1m" #\escape #\escape) name)))
               parent-name)
             #\escape)
-    (format t "~{~{~a~3t~a~10t~a~16t(~2,' d~20tsheets in ~2,' d~32titems)~40t\"~a\"~}~%~}"
+    (format t "~{~{~a~3t~a ~a (~2,' d sheets in ~2,' d~titems) \"~a\"~}~%~}"
             imformation-list)))
 
 (defun print-description ()
