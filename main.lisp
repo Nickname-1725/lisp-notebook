@@ -320,6 +320,53 @@
               (cat-text target-file-name "preview.md"))))))
      toc-list :initial-value nil)))
 
+(defun make-html-tag (tagname class id)
+  `(,(format nil "<~a~a~a>" tagname
+             (if (eq nil class) "" (format nil " class=\\\"~a\\\"" class))
+             (if (eq nil id) "" (format nil " id=\\\"~a\\\"" id)))
+    ,(format nil "</~a>" tagname)))
+
+(defun dump-styled-Markdown (struct-list)
+  "去掉struct头部, 获得toc-list; ~@
+  获取struct头部, 获得title; ~@
+  遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
+  然后再决定追加字符串还是拼接文本"
+  (let* ((toc-list (cdr struct-list))
+         (title (get-name id-table (car (car struct-list))))
+         (title-tag (make-html-tag "title" nil nil)))
+    (append-to-text (concatenate 'string (car title-tag) title (cadr title-tag))
+                    "preview.md")
+    (append-to-text (format nil "<link rel=\\\"stylesheet\\\" href=\\\"style.css\\\"/>")
+                    "preview.md")
+    (reduce
+     (lambda (x item) `,x
+       (let* ((id (car item))
+              (type (get-type id-table id)))
+         (cond
+           ((eq 'containers type) ; 容器: 生成标题
+            (let* ((heading-tag
+                     (make-html-tag (format nil "h~a" (cadr item))
+                                    nil
+                                    (format nil "~8,'0x" id)))
+                   (caption-name
+                     (concatenate
+                      'string (car heading-tag)
+                      (get-name id-table id) (cadr heading-tag))))
+              (append-to-text caption-name "preview.md")))
+           ((eq 'sheets type) ; 纸张: 拼接文本
+            (let ((div-tag-outer (make-html-tag "div" "sheet-wrap" nil))
+                  (div-tag-caption (make-html-tag "div" "sheet-caption" nil))
+                  (target-file-name
+                    (concatenate 'string (format nil "~8,'0x" id) ".md")))
+              (append-to-text
+               (concatenate 'string (car div-tag-outer)
+                            (car div-tag-caption) (get-name id-table id)
+                            (cadr div-tag-caption))
+               "preview.md")
+              (cat-text target-file-name "preview.md")
+              (append-to-text (cadr div-tag-outer) "preview.md"))))))
+     toc-list :initial-value nil)))
+
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)
   去除所有越界索引, 以及除数字及字符串外的输入"
@@ -363,7 +410,7 @@
                 ;; 查
                 (enter 2) (upper 1)
                 ;; 保存/退出
-                (dump-md-plain 2) (export 2) (save 1))
+                (dump-md-plain 2) (dump-md-styled 2) (export 2) (save 1))
     ;; 增
     (box #'(lambda (name) (new-datum user-stack 'containers name)))
     (paper #'(lambda (name) (new-datum user-stack 'sheets name)))
@@ -425,12 +472,15 @@
                                           (car (access user-stack))) 
                                         (car (last ustack)))))
                          (dump-plain-Markdown (flatten contents-table book 0)))))
-    ;(export #'(lambda (indx)
-    ;            (format t "~c[2J~c[H" #\escape #\escape)
-    ;            (format t "Sorry about that. The feature is not ready yet! That's awkward.(┭┮ ﹏ ┭┮ )~%")
-    ;            (read-line)
-    ;            `,indx
-    ;            '(do-something-here)))
+    (dump-md-styled #'(lambda (index)
+                       (let* ((ustack (access user-stack))
+                              (book (if (eq nil ustack)
+                                        ; 这里enter同样存在问题, 避开了sheets判断
+                                        (progn
+                                          (enter user-stack index)
+                                          (car (access user-stack))) 
+                                        (car (last ustack)))))
+                         (dump-styled-Markdown (flatten contents-table book 0)))))
     (save #'(lambda ()
               (save-id id-table)
               (save-contents contents-table)))))
@@ -493,6 +543,7 @@
      ("upper" "Back to upper level.")
      ;; 保存/退出
      ("dump-md-plain indx" "Export your work in plain Markdown format.")
+     ("dump-md-styled indx" "Export your work in styled Markdown format.")
      ("save" "Save your masterpiece with your own hands.")
      ("quit" "Exit. Data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 

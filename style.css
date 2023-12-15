@@ -1,0 +1,10 @@
+.sheet-caption {
+  color: #AAAAAA;
+  font-size: 11px ;
+}
+.sheet-wrap {
+  border: 1px solid #AAAAAA;
+  border-radius: 6px;
+  margin: 10px;
+  padding: 10px;
+}
