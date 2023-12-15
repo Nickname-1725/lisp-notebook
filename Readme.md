@@ -18,6 +18,21 @@
    - 从而取消`update-list`方法的使用
    - 甚至有可能改变许多命令的实现方式, 同时节省时间和空间
 
+1. [ ] 编写在`.config/lisp-notebook/`创建`review.html`文件的功能
+   - 可能需要那个能够拼接文件、追加段文本的`todo`功能来实现
+   - 用于生成具有特定标题(title)标签, 引用特定文件内容的html文件
+2. [ ] 借助`review.html`查看Markdown预览
+   - [ ] `review.html`应当正确引用制定`*.md`文件的内容
+   - [ ] `review.html`应当正确引用`Marked.js`脚本(本地或在线)
+   - [ ] `review.html`应当正确引用预定义的`style.css`样式表文件
+3. [ ] 借助shell命令行命令来打开准备好的网页文件
+   - 使用`xdg-open`命令来打开网页
+   - 将运行浏览器的信息重定向至黑洞文件`/dev/null`
+   - 示例代码
+     ```sh
+     xdg-open index.html > /dev/null 2>&1
+     ```
+
 ## 功能详细信息
 1. [x] 以 **随机不重复序** 号的形式存储容器/纸张的信息，从而允许重名
 2. [x] 基础操作
