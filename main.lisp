@@ -24,7 +24,8 @@
 (defun cat-text (target-name obj-name &optional (obj-folder config-path))
   (let* ((path-to-target (concatenate 'string config-path target-name))
          (path-to-obj (concatenate 'string obj-folder obj-name)))
-    (shell (concatenate 'string "cat " path-to-target " >> " path-to-obj))))
+    (shell (concatenate 'string "[ -f " path-to-target
+                        " ] && cat " path-to-target " >> " path-to-obj))))
 (defun append-to-text (target-string obj-name &optional (obj-folder config-path))
   (let* ((path-to-obj (concatenate 'string obj-folder obj-name)))
     (shell (concatenate 'string "echo \"" target-string "\" >> " path-to-obj))))
@@ -297,10 +298,10 @@
                             ".md")))))
 
 (defun dump-plain-Markdown (struct-list)
+  "去掉struct头部, 获得toc-list; ~@
+  遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
+  然后再决定追加字符串还是拼接文本"
   (let* ((toc-list (cdr struct-list)))
-    '(do-something-here)
-    "遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
-    然后再决定追加字符串还是拼接文本"
     (reduce
      (lambda (x item) `,x
        (let* ((id (car item))
@@ -317,7 +318,7 @@
             (let ((target-file-name
                     (concatenate 'string (format nil "~8,'0x" id) ".md")))
               (cat-text target-file-name "preview.md"))))))
-     toc-list)))
+     toc-list :initial-value nil)))
 
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)
@@ -362,7 +363,7 @@
                 ;; 查
                 (enter 2) (upper 1)
                 ;; 保存/退出
-                (export 2) (save 1))
+                (dump-md-plain 2) (export 2) (save 1))
     ;; 增
     (box #'(lambda (name) (new-datum user-stack 'containers name)))
     (paper #'(lambda (name) (new-datum user-stack 'sheets name)))
@@ -415,12 +416,21 @@
                (unless (upper user-stack) ; 若向上目录为空, 则提示已经位于根结点
                  (format t "This has been the *root*!~%"))))
     ;; 保存/退出
-    (export #'(lambda (indx)
-                (format t "~c[2J~c[H" #\escape #\escape)
-                (format t "Sorry about that. The feature is not ready yet! That's awkward.(┭┮ ﹏ ┭┮ )~%")
-                (read-line)
-                `,indx
-                '(do-something-here)))
+    (dump-md-plain #'(lambda (index)
+                       (let* ((ustack (access user-stack))
+                              (book (if (eq nil ustack)
+                                        ; 这里enter存在问题, 避开了sheets判断
+                                        (progn
+                                          (enter user-stack index)
+                                          (car (access user-stack))) 
+                                        (car (last ustack)))))
+                         (dump-plain-Markdown (flatten contents-table book 0)))))
+    ;(export #'(lambda (indx)
+    ;            (format t "~c[2J~c[H" #\escape #\escape)
+    ;            (format t "Sorry about that. The feature is not ready yet! That's awkward.(┭┮ ﹏ ┭┮ )~%")
+    ;            (read-line)
+    ;            `,indx
+    ;            '(do-something-here)))
     (save #'(lambda ()
               (save-id id-table)
               (save-contents contents-table)))))
@@ -482,7 +492,7 @@
      ("enter indx" "Enter a container.")
      ("upper" "Back to upper level.")
      ;; 保存/退出
-     ("export indx" "Export your work in Markdown format.")
+     ("dump-md-plain indx" "Export your work in plain Markdown format.")
      ("save" "Save your masterpiece with your own hands.")
      ("quit" "Exit. Data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 
