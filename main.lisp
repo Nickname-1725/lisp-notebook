@@ -326,6 +326,25 @@
              (if (eq nil id) "" (format nil " id=\\\"~a\\\"" id)))
     ,(format nil "</~a>" tagname)))
 
+(defun dump-styled-toc (toc-list)
+  (let ((div-tag-toc (make-html-tag "div" "tableofcontents" nil)))
+    (append-to-text (car div-tag-toc) "preview.md")
+    (append-to-text "" "preview.md") ; 必须空一行
+    (reduce
+     (lambda (x item) `,x
+       (let* ((id (car item))
+              (type (get-type id-table id)))
+         (if (eq 'containers type) ; 容器, 生成目录
+             (append-to-text
+              (concatenate 'string (case (cadr item)
+                                     (1 "- ") (2 "  - ") (3 "    - "))
+                           (format nil "[~a](#~a)"
+                                   (get-name id-table id)
+                                   (format nil "~8,'0x" id)))
+              "preview.md"))))
+     toc-list :initial-value nil)
+    (append-to-text (cadr div-tag-toc) "preview.md")
+    (append-to-text "" "preview.md"))) ; 必须空一行
 (defun dump-styled-Markdown (struct-list)
   "去掉struct头部, 获得toc-list; ~@
   获取struct头部, 获得title; ~@
@@ -333,11 +352,14 @@
   然后再决定追加字符串还是拼接文本"
   (let* ((toc-list (cdr struct-list))
          (title (get-name id-table (car (car struct-list))))
-         (title-tag (make-html-tag "title" nil nil)))
+         (title-tag (make-html-tag "title" nil nil))
+         (div-tag-main (make-html-tag "div" "main" nil)))
     (append-to-text (concatenate 'string (car title-tag) title (cadr title-tag))
                     "preview.md")
     (append-to-text (format nil "<link rel=\\\"stylesheet\\\" href=\\\"style.css\\\"/>")
-                    "preview.md")
+                    "preview.md") ; 引入CSS
+    (dump-styled-toc toc-list)
+    (append-to-text (car div-tag-main) "preview.md")
     (reduce
      (lambda (x item) `,x
        (let* ((id (car item))
@@ -363,9 +385,11 @@
                             (car div-tag-caption) (get-name id-table id)
                             (cadr div-tag-caption))
                "preview.md")
+              (append-to-text "" "preview.md")
               (cat-text target-file-name "preview.md")
               (append-to-text (cadr div-tag-outer) "preview.md"))))))
-     toc-list :initial-value nil)))
+     toc-list :initial-value nil)
+    (append-to-text (cadr div-tag-main) "preview.md")))
 
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)

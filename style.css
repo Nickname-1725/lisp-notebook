@@ -1,10 +1,57 @@
+
+/*目录样式*/
+.tableofcontents {
+  width:300px;
+  max-height: 90%;
+  overflow-y:auto;
+  background-color:#FFFFFFA0;
+  border: 2px solid #f0f0f0;
+  position:fixed;
+  right: min(calc(50% + 350px),100% - 300px);
+  margin:0px auto 0px auto;
+  /* 字体 */
+  font-size: smaller;
+  font-weight: bold;
+}
+
+.tableofcontents a:link {
+  color: #706A5E;
+  text-decoration: none;
+}
+
+.tableofcontents a:visited {
+  color: #706A5E;
+  text-decoration: none;
+}
+
+.tableofcontents a:hover {
+  color: #FFFFFF;
+  background-color: #706A5E;
+  text-decoration: underline;
+}
+
+/*正文样式*/
+.main {
+  box-sizing: border-box; 
+  max-width:700px; 
+  margin: auto;
+  padding:50px;
+  /*border: 2px solid #f0f0f0;*/
+  font-family: tahoma,arial,'Hiragino Sans GB',\5b8b\4f53,sans-serif
+}
+
+/*sheet片段样式*/
 .sheet-caption {
-  color: #AAAAAA;
+  background-color: #DDDDDD;
+  color: white;
+  border-radius: 5px;
+  margin: 0.5em 0px 0px 0px;
+  padding: 0px 0.2em 0px 0.5em;
   font-size: 11px ;
 }
 .sheet-wrap {
   border: 1px solid #AAAAAA;
   border-radius: 6px;
   margin: 10px;
-  padding: 10px;
+  padding: 1px 10px 10px 10px;
 }
