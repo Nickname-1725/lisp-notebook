@@ -139,27 +139,56 @@
     (format t "~{~{~a~3t~a ~a (~2,' d sheets in ~2,' d~titems) \"~a\"~}~%~}"
             imformation-list)))
 
-(defun print-description ()
-  "反馈可用命令"
-  (user-cmd-description
-   '(;; 增
+(defparameter *descriptions*
+  '((main-repl
+     ("test" "...")
+     ("test" "...")
+     ("test" "..."))
+    (to-add
+     ;; 增
      ("box \"name\"" "Create a container. Name shall be \"quote-marked\".")
-     ("paper \"name\"" "Create a sheet. Name shall be \"quote-marked\".")
+     ("paper \"name\"" "Create a sheet. Name shall be \"quote-marked\"."))
+    (to-delete
      ;; 删
      ("destruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
-     ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too.")
+     ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too."))
+    (to-change
      ;; 改
      ("nvim index" "Edit the sheet with Noevim(shall has been installed).")
      ("code index" "Edit the sheet with VSCode(shall has been installed).")
      ("rename indx \"name\"" "Rename a container/sheet. ")
      ("pose indx destn" "Move a container/sheet to the destination.")
      ("push-into indx destn" "Push a container/sheet into the destination.")
-     ("pop-out indx" "Move a container/sheet to its upper level.")
+     ("pop-out indx" "Move a container/sheet to its upper level."))
+    (to-move-around
      ;; 查
      ("enter indx" "Enter a container.")
-     ("upper" "Back to upper level.")
+     ("upper" "Back to upper level."))
+    (to-export-save-exit
      ;; 保存/退出
      ("dump-md-plain indx" "Export your work in plain Markdown format.")
      ("dump-md-styled indx" "Export your work in styled Markdown format.")
      ("save" "Save your masterpiece with your own hands.")
      ("quit" "Exit. Data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
+
+(defparameter prompt 'main-repl)
+(defun print-description (&optional (prompt 'main-repl))
+  "反馈可用命令"
+  (user-cmd-description
+   (cdr (assoc prompt *descriptions*))))
+
+(defun main-repl ()
+  (format t "The note-book launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
+  (print-description prompt)
+  (display-list)
+  ;; 执行用户命令
+  (let ((cmd (user-read)))
+    (if (eq (car cmd) 'quit)
+        (progn
+          "退出笔记"
+          (save-id id-table)
+          (save-contents contents-table)
+          (format t "Exited the note-book. Goodbye."))
+        (progn
+          (funcall user-cmd-eval cmd)
+          (main-repl)))))
