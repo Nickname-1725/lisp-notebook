@@ -1,6 +1,6 @@
 (defun user-read ()
-  "通用解析用户输入函数(同时判断输入的合法性)
-  去除所有越界索引, 以及除数字及字符串外的输入"
+  "通用解析用户输入函数(同时判断输入的合法性)~@
+  去除所有越界索引, 以及除数字,字符串,符号外的输入" ; 这里开始允许符号, 错误处理有风险
   (let* ((cmd (read-from-string
                (concatenate 'string "(" (read-line) ")" )))
          (operands (mapcar (lambda (item)
@@ -10,7 +10,9 @@
                                             (< item 1))
                                         nil
                                         item))
-                                   ((stringp item) item)))
+                                   ((or (stringp item)
+                                        (symbolp item))
+                                    item)))
                            (cdr cmd))))
     (if (member nil operands) nil
         (cons (car cmd) operands))))
@@ -28,8 +30,9 @@
                 (eq (length sexp) (cadr find-cmd)))
            (let ((operator (case operator-name
                              ,@fun-list)))
-             (apply operator operands))
-           (format t "Not a valid command. (✿ ◕ __ ◕ )~%")))))
+             (apply operator operands) t) ; 匹配到功能就返回t
+           ;(format t "Not a valid command. (✿ ◕ __ ◕ )~%")
+           nil)))) ; 匹配不到功能就返回nil
 
 (defparameter user-cmd-eval
   (user-eval* '(;; 增
@@ -141,18 +144,20 @@
 
 (defparameter *descriptions*
   '((main-repl
-     ("test" "...")
-     ("test" "...")
-     ("test" "..."))
-    (to-add
+     ("help add" "To add some papers and boxes.")
+     ("help delete" "To delete redundant papers or boxes.")
+     ("help change" "To make some changes(without adding or deleting).")
+     ("help shift" "To wander around your masterpieces.")
+     ("help files" "Informations about the files and QUIT."))
+    (add
      ;; 增
      ("box \"name\"" "Create a container. Name shall be \"quote-marked\".")
      ("paper \"name\"" "Create a sheet. Name shall be \"quote-marked\"."))
-    (to-delete
+    (delete
      ;; 删
      ("destruct indx" "Remove a container/sheet, sub-nodes will be upgraded automatically.")
      ("trash indx" "Erase a container/sheet, sub-nodes will be elimated, too."))
-    (to-change
+    (change
      ;; 改
      ("nvim index" "Edit the sheet with Noevim(shall has been installed).")
      ("code index" "Edit the sheet with VSCode(shall has been installed).")
@@ -160,35 +165,46 @@
      ("pose indx destn" "Move a container/sheet to the destination.")
      ("push-into indx destn" "Push a container/sheet into the destination.")
      ("pop-out indx" "Move a container/sheet to its upper level."))
-    (to-move-around
+    (shift
      ;; 查
      ("enter indx" "Enter a container.")
      ("upper" "Back to upper level."))
-    (to-export-save-exit
+    (files
      ;; 保存/退出
      ("dump-md-plain indx" "Export your work in plain Markdown format.")
      ("dump-md-styled indx" "Export your work in styled Markdown format.")
      ("save" "Save your masterpiece with your own hands.")
      ("quit" "Exit. Data will be automatically restored by your little helper.(˵ ✿ ◕ ‿ ◕ ˵)"))))
 
-(defparameter prompt 'main-repl)
 (defun print-description (&optional (prompt 'main-repl))
   "反馈可用命令"
-  (user-cmd-description
-   (cdr (assoc prompt *descriptions*))))
+  (let* ((doc (cdr (assoc prompt *descriptions*))))
+    (if (eq nil doc) (print-description)
+        (user-cmd-description doc))))
 
-(defun main-repl ()
-  (format t "The note-book launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
+(defun greet-line (&optional (prompt 'main-repl))
+  (case prompt
+    (main-repl "The note-book (v1.3.2) launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
+    (add "Here you go! Docs about adding some data.~%")
+    (delete "Here you go! Docs about deleting data.~%")
+    (change "Here you go! Docs about making some changes.~%")
+    (shift "Here you go! Docs about shifting around.~%")
+    (files "Here you go! Docs about files and how to quit.~%")
+    (exception "Not a valid command. (✿ ◕ __ ◕ )~%")))
+
+(defun main-repl (&optional (prompt 'main-repl))
+  (format t (greet-line prompt))
   (print-description prompt)
   (display-list)
   ;; 执行用户命令
   (let ((cmd (user-read)))
-    (if (eq (car cmd) 'quit)
-        (progn
-          "退出笔记"
-          (save-id id-table)
-          (save-contents contents-table)
-          (format t "Exited the note-book. Goodbye."))
-        (progn
-          (funcall user-cmd-eval cmd)
-          (main-repl)))))
+    (cond ((eq (car cmd) 'quit) ; 退出笔记
+           (save-id id-table)
+           (save-contents contents-table)
+           (format t "Exited the note-book. Goodbye."))
+          ((funcall user-cmd-eval cmd) ; 一般用户功能
+           (main-repl))
+          ((eq (car cmd) 'help) ; 查看命令
+           (let ((prompt (cadr cmd)))
+             (main-repl prompt))) ; 可用命令
+          (t (main-repl 'exception))))) ; 命令无效
