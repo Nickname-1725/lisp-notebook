@@ -391,6 +391,19 @@
      toc-list :initial-value nil)
     (append-to-text (cadr div-tag-main) "preview.md")))
 
+(defun export-markdown (dump-fun index)
+  "调用dump-fun(dump-plain-Markdown/dump-styled-Markdown)"
+  (let* ((ustack (access user-stack))
+         (book (if (eq nil ustack)
+                   (let* ((item (get-item user-stack index))
+                          (id (car item))
+                          (type (get-type id-table id)))
+                     (if (eq 'sheets type)
+                         (format t "Don't export a single sheet!~%")
+                         item))
+                   (car (last ustack)))))
+    (funcall dump-fun (flatten contents-table book 0))))
+
 (defun user-read ()
   "通用解析用户输入函数(同时判断输入的合法性)
   去除所有越界索引, 以及除数字及字符串外的输入"
@@ -488,23 +501,9 @@
                  (format t "This has been the *root*!~%"))))
     ;; 保存/退出
     (dump-md-plain #'(lambda (index)
-                       (let* ((ustack (access user-stack))
-                              (book (if (eq nil ustack)
-                                        ; 这里enter存在问题, 避开了sheets判断
-                                        (progn
-                                          (enter user-stack index)
-                                          (car (access user-stack))) 
-                                        (car (last ustack)))))
-                         (dump-plain-Markdown (flatten contents-table book 0)))))
+                       (export-markdown #'dump-plain-Markdown index)))
     (dump-md-styled #'(lambda (index)
-                       (let* ((ustack (access user-stack))
-                              (book (if (eq nil ustack)
-                                        ; 这里enter同样存在问题, 避开了sheets判断
-                                        (progn
-                                          (enter user-stack index)
-                                          (car (access user-stack))) 
-                                        (car (last ustack)))))
-                         (dump-styled-Markdown (flatten contents-table book 0)))))
+                        (export-markdown #'dump-styled-Markdown index)))
     (save #'(lambda ()
               (save-id id-table)
               (save-contents contents-table)))))
