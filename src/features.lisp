@@ -13,6 +13,7 @@
   "去掉struct头部, 获得toc-list; ~@
   遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
   然后再决定追加字符串还是拼接文本"
+  (clean-file "preview.md")
   (let* ((toc-list (cdr struct-list)))
     (reduce
      (lambda (x item) `,x
@@ -62,6 +63,7 @@
   获取struct头部, 获得title; ~@
   遍历整个toc-list, 对于每个元素都先查看是否为sheets, ~@
   然后再决定追加字符串还是拼接文本"
+  (clean-file "preview.md")
   (let* ((toc-list (cdr struct-list))
          (title (get-name id-table (car (car struct-list))))
          (title-tag (make-html-tag "title" nil nil))
