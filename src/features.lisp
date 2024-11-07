@@ -4,9 +4,10 @@
   (let ((target-id (car (get-item user-stack index))))
     (if (eq 'containers (get-type id-table target-id))
         (format t "The operation is not allowed on containers!~%")
-        (shell (concatenate 'string editor " " config-path
-                            (format nil "~8,'0x" target-id)
-                            ".md")))))
+        (uiop:run-program (concatenate 'string editor " " config-path
+                                       (format nil "~8,'0x" target-id)
+                                       ".md")
+                          :input :interactive :output :interactive))))
 
 (defun dump-plain-Markdown (struct-list)
   "去掉struct头部, 获得toc-list; ~@

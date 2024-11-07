@@ -55,25 +55,24 @@
                          (type (get-type id-table id)))
                     (destruct user-stack item)
                     (if (eq 'sheets type)
-                        (shell (concatenate 'string "rm -f " config-path
-                                            (format nil "~8,'0x" id)
-                                            ".md"))))))
+                        (ignore-errors
+                          (delete-file (concatenate 'string config-path
+                                                    (format nil "~8,'0x" id)
+                                                    ".md")))))))
     (trash #'(lambda (index)
                (let* ((item (get-item user-stack index))
                       (below (flatten contents-table item 0)))
-                 (trash user-stack item)
                  (mapcar
                   (lambda (item)
                     (let* ((id (car item))
                            (type (get-type id-table id)))
                       (if (eq 'sheets type)
-                          (format t "~a" (concatenate 'string "rm -f " config-path
-                                              (format nil "~8,'0x" id)
-                                              ".md"))
-                          (shell (concatenate 'string "rm -f " config-path
-                                              (format nil "~8,'0x" id)
-                                              ".md")))))
-                  below))))
+                          (ignore-errors
+                            (delete-file (concatenate 'string config-path
+                                                      (format nil "~8,'0x" id)
+                                                      ".md"))))))
+                  below)
+                 (trash user-stack item))))
     ;; 改
     (nvim #'(lambda (index) (editor-call index "nvim")))
     (code #'(lambda (index) (editor-call index "code")))
