@@ -35,8 +35,8 @@
 
 (defun make-html-tag (tagname class id)
   `(,(format nil "<~a~a~a>" tagname
-             (if (eq nil class) "" (format nil " class=\\\"~a\\\"" class))
-             (if (eq nil id) "" (format nil " id=\\\"~a\\\"" id)))
+             (if (eq nil class) "" (format nil " class=\"~a\"" class))
+             (if (eq nil id) "" (format nil " id=\"~a\"" id)))
     ,(format nil "</~a>" tagname)))
 
 (defun dump-styled-toc (toc-list)
@@ -70,7 +70,7 @@
          (div-tag-main (make-html-tag "div" "main" nil)))
     (append-to-text (concatenate 'string (car title-tag) title (cadr title-tag))
                     "preview.md")
-    (append-to-text (format nil "<link rel=\\\"stylesheet\\\" href=\\\"style.css\\\"/>")
+    (append-to-text (format nil "<link rel=\"stylesheet\" href=\"style.css\"/>")
                     "preview.md") ; 引入CSS
     (dump-styled-toc toc-list)
     (append-to-text (car div-tag-main) "preview.md")

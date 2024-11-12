@@ -183,7 +183,7 @@
 
 (defun greet-line (&optional (prompt 'main-repl))
   (case prompt
-    (main-repl "The note-book (v1.4.0) launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
+    (main-repl "The note-book (v1.4.1) launched. Wellcome back. ( ✿ ◕ ‿ ◕ )~%")
     (add "Here you go! Docs about adding some data.~%")
     (delete "Here you go! Docs about deleting data.~%")
     (change "Here you go! Docs about making some changes.~%")
